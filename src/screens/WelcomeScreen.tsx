@@ -36,7 +36,6 @@ export default function WelcomeScreen({ navigation }: Props) {
 
         <View style={{ width: '100%', overflow: 'hidden' }}>
           <Text
-            numberOfLines={1}
             style={{
               fontFamily: 'AsapCondensed_700Bold',
               fontSize: 200,
