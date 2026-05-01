@@ -52,7 +52,7 @@ export default function Registration1Screen({ navigation, route }: Props) {
         </View>
       </ScrollView>
 
-      <View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}>
+      <View style={[styles.footer, { paddingBottom: insets.bottom + 8 }]}>
         <TouchableOpacity
           style={[styles.nextBtn, !canProceed && styles.nextBtnDisabled]}
           onPress={() => canProceed && navigation.navigate('RegistrationVerification', { mode: isLogin ? 'login' : undefined })}
@@ -118,7 +118,7 @@ const styles = StyleSheet.create({
   },
   footer: {
     paddingHorizontal: Spacing.screen,
-    paddingTop: 12,
+    paddingTop: 8,
     backgroundColor: Colors.white,
   },
   nextBtn: {

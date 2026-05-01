@@ -70,12 +70,14 @@ export default function RegistrationVerificationScreen({ navigation, route }: Pr
   return (
     <View style={{ flex: 1, backgroundColor: Colors.brand }}>
     <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={{ flex: 1, backgroundColor: Colors.white }}
+      behavior="padding"
+      keyboardVerticalOffset={0}
     >
       <ScrollView
         ref={scrollRef}
-        contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 16 }]}
+        style={{ flex: 1 }}
+        contentContainerStyle={{ flexGrow: 1, paddingHorizontal: Spacing.screen, paddingTop: insets.top + 16, paddingBottom: 16 }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
@@ -117,7 +119,7 @@ export default function RegistrationVerificationScreen({ navigation, route }: Pr
         </View>
       </ScrollView>
 
-      <View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}>
+      <View style={[styles.footer, { paddingBottom: insets.bottom + 8 }]}>
         <TouchableOpacity
           style={[styles.nextBtn, !canProceed && styles.nextBtnDisabled]}
           onPress={() => canProceed && (isLogin ? navigation.replace('Main') : navigation.navigate('Registration2'))}
@@ -195,7 +197,7 @@ const styles = StyleSheet.create({
   },
   footer: {
     paddingHorizontal: Spacing.screen,
-    paddingTop: 12,
+    paddingTop: 8,
     backgroundColor: Colors.white,
   },
   nextBtn: {

@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { View, Text, Image, TouchableOpacity } from 'react-native';
+import { View, Text, Image, TouchableOpacity, Dimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFonts, AsapCondensed_700Bold } from '@expo-google-fonts/asap-condensed';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Welcome'>;
+
+const { width } = Dimensions.get('window');
 
 export default function WelcomeScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
@@ -22,11 +24,9 @@ export default function WelcomeScreen({ navigation }: Props) {
         backgroundColor: '#FFFFFF',
         marginHorizontal: 4,
         paddingTop: insets.top + 32,
-        paddingBottom: insets.bottom,
-        overflow: 'hidden',
       }}>
 
-        <View style={{ alignItems: 'center', marginBottom: 8 }}>
+        <View style={{ alignItems: 'center', marginBottom: 16 }}>
           <Image
             source={require('../../assets/logo.png')}
             style={{ width: 150, height: 150 }}
@@ -34,35 +34,35 @@ export default function WelcomeScreen({ navigation }: Props) {
           />
         </View>
 
-        <View style={{ width: '100%', overflow: 'hidden' }}>
-          <Text
-            style={{
-              fontFamily: 'AsapCondensed_700Bold',
-              fontSize: 200,
-              color: '#000FE1',
-              lineHeight: 210,
-              marginLeft: -20,
-              letterSpacing: -3,
-            }}
-          >
-            MEEX
-          </Text>
-        </View>
+        <Text style={{
+          fontFamily: 'AsapCondensed_700Bold',
+          fontSize: width * 0.45,
+          color: '#000FE1',
+          marginLeft: -4,
+          letterSpacing: -3,
+          lineHeight: width * 0.48,
+        }}>
+          MEEX
+        </Text>
 
         <Text style={{
-          fontSize: 16,
-          fontWeight: '400',
+          fontSize: 17,
           color: '#000FE1',
           textAlign: 'center',
           marginTop: 8,
+          fontWeight: '400',
         }}>
           Designed to be closed.
         </Text>
 
         <View style={{ flex: 1 }} />
 
-        <View style={{ paddingHorizontal: 24, paddingTop: 12, paddingBottom: 20, gap: 12 }}>
-
+        <View style={{
+          paddingHorizontal: 24,
+          paddingBottom: insets.bottom + 16,
+          paddingTop: 8,
+          gap: 12,
+        }}>
           <TouchableOpacity
             onPressIn={() => setRegisterPressed(true)}
             onPressOut={() => setRegisterPressed(false)}
@@ -109,15 +109,12 @@ export default function WelcomeScreen({ navigation }: Props) {
 
           <Text style={{
             textAlign: 'center',
-            fontSize: 12,
-            fontWeight: '400',
+            fontSize: 11,
             color: 'rgba(0,14,225,0.45)',
-            letterSpacing: 0.2,
-            marginTop: 4,
+            marginTop: 2,
           }}>
             University email required - 18+ - Always free for students.
           </Text>
-
         </View>
       </View>
     </View>

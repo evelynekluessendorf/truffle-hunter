@@ -114,7 +114,7 @@ export default function RegistrationFactsScreen({ navigation }: Props) {
             </View>
       </ScrollView>
 
-      <View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}>
+      <View style={[styles.footer, { paddingBottom: insets.bottom + 8 }]}>
         <TouchableOpacity
           style={[styles.nextBtn, !canProceed && styles.nextBtnDisabled]}
           onPress={() => {
@@ -161,7 +161,7 @@ const styles = StyleSheet.create({
   addCircle: { height: 32, paddingHorizontal: 12, borderRadius: 16, borderWidth: 1.5, borderColor: Colors.brand, alignItems: 'center', justifyContent: 'center' },
   addCircleText: { fontSize: FontSize.bodySmall, color: Colors.brand, fontWeight: '700' },
   addRowText: { fontSize: FontSize.body, fontWeight: '400', color: Colors.brand },
-  footer: { paddingHorizontal: Spacing.screen, paddingTop: 12, backgroundColor: Colors.white },
+  footer: { paddingHorizontal: Spacing.screen, paddingTop: 8, backgroundColor: Colors.white },
   nextBtn: { height: 56, backgroundColor: Colors.orange, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   nextBtnDisabled: { backgroundColor: Colors.brand, opacity: 0.4 },
   nextRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },

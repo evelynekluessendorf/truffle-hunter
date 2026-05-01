@@ -113,7 +113,7 @@ export default function Registration2Screen({ navigation }: Props) {
             </View>
       </ScrollView>
 
-      <View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}>
+      <View style={[styles.footer, { paddingBottom: insets.bottom + 8 }]}>
         <TouchableOpacity
           style={[styles.nextBtn, !canProceed && styles.nextBtnDisabled]}
           onPress={() => { if (canProceed) { saveNameToContext(firstName.trim()); navigation.navigate('RegistrationFacts'); } }}
@@ -197,7 +197,7 @@ const styles = StyleSheet.create({
   dropdownText: { fontSize: FontSize.body, color: Colors.body },
   dropdownPlaceholder: { color: '#BBADA5' },
   chevron: { fontSize: FontSize.sectionHeader, color: Colors.muted },
-  footer: { paddingHorizontal: Spacing.screen, paddingTop: 12, backgroundColor: Colors.white },
+  footer: { paddingHorizontal: Spacing.screen, paddingTop: 8, backgroundColor: Colors.white },
   nextBtn: { height: 56, backgroundColor: Colors.orange, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   nextBtnDisabled: { backgroundColor: Colors.brand, opacity: 0.4 },
   nextRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },

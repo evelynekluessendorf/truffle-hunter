@@ -115,7 +115,7 @@ export default function ShoutOutScreen({ navigation }: Props) {
         })}
       </ScrollView>
 
-      <View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}>
+      <View style={[styles.footer, { paddingBottom: insets.bottom + 8 }]}>
         <TouchableOpacity
           style={[styles.shoutBtn, !text.trim() && styles.shoutBtnDisabled]}
           onPress={handleShout}

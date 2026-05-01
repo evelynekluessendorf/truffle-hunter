@@ -55,7 +55,7 @@ export default function OpenerScreen({ route, navigation }: Props) {
         </TouchableOpacity>
       </View>
 
-      <View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}>
+      <View style={[styles.footer, { paddingBottom: insets.bottom + 8 }]}>
         <TouchableOpacity
           style={styles.ctaBtn}
           activeOpacity={0.85}

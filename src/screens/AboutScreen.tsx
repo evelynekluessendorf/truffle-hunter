@@ -54,7 +54,7 @@ export default function AboutScreen({ navigation }: Props) {
           </View>
         </ScrollView>
 
-        <View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}>
+        <View style={[styles.footer, { paddingBottom: insets.bottom + 8 }]}>
           <TouchableOpacity
             style={styles.nextBtn}
             onPress={() => navigation.navigate('Registration1', {})}
@@ -107,7 +107,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
     marginBottom: 8,
   },
-  footer: { paddingHorizontal: Spacing.screen, paddingTop: 12, backgroundColor: Colors.white },
+  footer: { paddingHorizontal: Spacing.screen, paddingTop: 8, backgroundColor: Colors.white },
   nextBtn: {
     height: 56,
     backgroundColor: Colors.brand,

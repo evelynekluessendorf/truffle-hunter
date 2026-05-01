@@ -66,7 +66,7 @@ export default function RegistrationInterestsScreen({ navigation }: Props) {
             </View>
       </ScrollView>
 
-      <View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}>
+      <View style={[styles.footer, { paddingBottom: insets.bottom + 8 }]}>
         <TouchableOpacity
           style={[styles.doneBtn, !canProceed && styles.doneBtnDisabled]}
           onPress={() => canProceed && navigation.replace('Main')}
@@ -90,7 +90,7 @@ const styles = StyleSheet.create({
   tagText: { fontSize: FontSize.body, fontWeight: '400', color: Colors.body },
   tagLabel: { fontWeight: '400', color: Colors.body },
   tagLabelOn: { color: Colors.brand, fontWeight: '700' },
-  footer: { paddingHorizontal: Spacing.screen, paddingTop: 12, backgroundColor: Colors.white },
+  footer: { paddingHorizontal: Spacing.screen, paddingTop: 8, backgroundColor: Colors.white },
   doneBtn: { height: 56, backgroundColor: Colors.orange, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   doneBtnDisabled: { backgroundColor: Colors.brand, opacity: 0.4 },
   doneBtnText: { color: Colors.white, fontWeight: '700', fontSize: FontSize.body, letterSpacing: LetterSpacing.body, includeFontPadding: false },
