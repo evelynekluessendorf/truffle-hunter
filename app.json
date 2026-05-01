@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "meex",
+    "name": "Meex",
     "slug": "meex",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -10,7 +10,7 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#FEF0E8"
     },
     "ios": {
       "supportsTablet": true
@@ -21,10 +21,25 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.evekluessendorf.meex"
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "553d9283-78fd-4e15-88d1-aa7d46848c26"
+      }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/553d9283-78fd-4e15-88d1-aa7d46848c26"
+    },
+    "plugins": [
+      "expo-font"
+    ]
   }
 }
