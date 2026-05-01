@@ -22,10 +22,12 @@ export default function WelcomeScreen({ navigation }: Props) {
       <View style={{
         flex: 1,
         backgroundColor: '#FFFFFF',
-        marginHorizontal: 4,
+        marginLeft: 52,
+        marginRight: 4,
         paddingTop: insets.top + 32,
       }}>
 
+        {/* LOGO MARK — centered */}
         <View style={{ alignItems: 'center', marginBottom: 16 }}>
           <Image
             source={require('../../assets/logo.png')}
@@ -34,17 +36,19 @@ export default function WelcomeScreen({ navigation }: Props) {
           />
         </View>
 
+        {/* MEEX WORDMARK — bleeds left into blue */}
         <Text style={{
           fontFamily: 'AsapCondensed_700Bold',
-          fontSize: width * 0.45,
+          fontSize: width * 0.52,
           color: '#000FE1',
-          marginLeft: -4,
+          marginLeft: -(52 + 8),
           letterSpacing: -3,
-          lineHeight: width * 0.48,
+          lineHeight: width * 0.56,
         }}>
           MEEX
         </Text>
 
+        {/* TAGLINE */}
         <Text style={{
           fontSize: 17,
           color: '#000FE1',
@@ -55,14 +59,18 @@ export default function WelcomeScreen({ navigation }: Props) {
           Designed to be closed.
         </Text>
 
+        {/* SPACER */}
         <View style={{ flex: 1 }} />
 
+        {/* BUTTONS + MICRO TEXT */}
         <View style={{
           paddingHorizontal: 24,
           paddingBottom: insets.bottom + 16,
           paddingTop: 8,
           gap: 12,
         }}>
+
+          {/* Register — ghost */}
           <TouchableOpacity
             onPressIn={() => setRegisterPressed(true)}
             onPressOut={() => setRegisterPressed(false)}
@@ -71,7 +79,7 @@ export default function WelcomeScreen({ navigation }: Props) {
             style={{
               height: 56,
               borderRadius: 12,
-              borderWidth: 1.5,
+              borderWidth: 2,
               borderColor: '#000FE1',
               backgroundColor: registerPressed ? '#000FE1' : '#FFFFFF',
               alignItems: 'center',
@@ -85,6 +93,7 @@ export default function WelcomeScreen({ navigation }: Props) {
             }}>Register</Text>
           </TouchableOpacity>
 
+          {/* Log In — filled */}
           <TouchableOpacity
             onPressIn={() => setLoginPressed(true)}
             onPressOut={() => setLoginPressed(false)}
@@ -93,7 +102,7 @@ export default function WelcomeScreen({ navigation }: Props) {
             style={{
               height: 56,
               borderRadius: 12,
-              borderWidth: 1.5,
+              borderWidth: 2,
               borderColor: '#000FE1',
               backgroundColor: loginPressed ? '#FFFFFF' : '#000FE1',
               alignItems: 'center',
@@ -107,6 +116,7 @@ export default function WelcomeScreen({ navigation }: Props) {
             }}>Log In</Text>
           </TouchableOpacity>
 
+          {/* Micro text */}
           <Text style={{
             textAlign: 'center',
             fontSize: 11,
@@ -115,6 +125,7 @@ export default function WelcomeScreen({ navigation }: Props) {
           }}>
             University email required - 18+ - Always free for students.
           </Text>
+
         </View>
       </View>
     </View>
