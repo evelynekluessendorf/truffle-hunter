@@ -1,8 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import { View, Text, TouchableOpacity, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '../constants/colors';
-import { FontSize, LetterSpacing, Radius } from '../constants/theme';
 import { User } from '../types';
 
 interface Props {
@@ -14,31 +12,61 @@ interface Props {
 
 export default function MapProfileCard({ user, onViewProfile, onDismiss, onNavigate }: Props) {
   return (
-    <View style={styles.card}>
-      <TouchableOpacity style={styles.closeBtn} onPress={onDismiss} hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}>
-        <Text style={styles.closeText}>✕</Text>
+    <View style={{
+      backgroundColor: '#FFFFFF',
+      borderRadius: 16,
+      padding: 16,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.12,
+      shadowRadius: 12,
+      elevation: 4,
+    }}>
+      {/* Dismiss */}
+      <TouchableOpacity
+        style={{ position: 'absolute', top: 12, right: 12, zIndex: 1, padding: 4 }}
+        onPress={onDismiss}
+        hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
+      >
+        <Text style={{ fontSize: 14, color: '#AAAAAA' }}>✕</Text>
       </TouchableOpacity>
 
-      <View style={styles.header}>
-        <View style={[styles.photoWrap, { borderColor: user.avatarColor }]}>
+      {/* Header row */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingRight: 24, marginBottom: 4 }}>
+        {/* Avatar */}
+        <View style={{ width: 52, height: 52, borderRadius: 26, overflow: 'hidden', flexShrink: 0 }}>
           {user.photoUri ? (
-            <Image source={{ uri: user.photoUri }} style={styles.photo} />
+            <Image source={{ uri: user.photoUri }} style={{ width: '100%', height: '100%' }} />
           ) : (
-            <View style={[styles.photoFallback, { backgroundColor: user.avatarColor }]}>
-              <Text style={styles.initial}>{user.name.charAt(0)}</Text>
+            <View style={{ width: '100%', height: '100%', backgroundColor: user.avatarColor, alignItems: 'center', justifyContent: 'center' }}>
+              <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 16 }}>{user.name.charAt(0)}</Text>
             </View>
           )}
         </View>
-        <View style={styles.info}>
-          <Text style={styles.name} numberOfLines={1}>{user.name}</Text>
-          <Text style={styles.sub} numberOfLines={1}>{user.year} · {user.major}</Text>
+
+        {/* Name + meta */}
+        <View style={{ flex: 1, gap: 2 }}>
+          <Text style={{ fontSize: 24, fontWeight: '700', color: '#000FE1' }} numberOfLines={1}>
+            {user.name}
+          </Text>
+          <Text style={{ fontSize: 13, color: '#888888' }} numberOfLines={1}>
+            {user.year} · {user.major}
+          </Text>
           {user.distance && (
-            <View style={styles.distanceRow}>
-              <Text style={styles.distance}>{user.distance}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 }}>
+              <Text style={{ fontSize: 12, color: '#8888CC' }}>{user.distance}</Text>
               {onNavigate && (
-                <TouchableOpacity onPress={onNavigate} style={styles.navBtn} activeOpacity={0.75}>
-                  <Ionicons name="navigate" size={11} color={Colors.white} />
-                  <Text style={styles.navBtnText}>Directions</Text>
+                <TouchableOpacity
+                  onPress={onNavigate}
+                  activeOpacity={0.75}
+                  style={{
+                    flexDirection: 'row', alignItems: 'center', gap: 3,
+                    backgroundColor: '#000FE1', borderRadius: 100,
+                    paddingHorizontal: 10, paddingVertical: 4,
+                  }}
+                >
+                  <Ionicons name="navigate" size={11} color="#FFFFFF" />
+                  <Text style={{ fontSize: 12, fontWeight: '600', color: '#FFFFFF' }}>Directions</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -46,116 +74,19 @@ export default function MapProfileCard({ user, onViewProfile, onDismiss, onNavig
         </View>
       </View>
 
-      <Text style={styles.quote} numberOfLines={3}>"{user.iceBreakers[0]}"</Text>
+      {/* Quote */}
+      <Text style={{ fontSize: 14, color: '#888888', fontStyle: 'italic', lineHeight: 22, marginBottom: 14, marginTop: 8 }} numberOfLines={3}>
+        "{user.iceBreakers[0]}"
+      </Text>
 
-      <TouchableOpacity style={styles.btn} onPress={onViewProfile} activeOpacity={0.85}>
-        <Text style={styles.btnText}>View profile</Text>
+      {/* View profile button */}
+      <TouchableOpacity
+        style={{ height: 48, backgroundColor: '#000FE1', borderRadius: 10, alignItems: 'center', justifyContent: 'center' }}
+        onPress={onViewProfile}
+        activeOpacity={0.85}
+      >
+        <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 16 }}>View profile</Text>
       </TouchableOpacity>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: Colors.white,
-    borderRadius: 16,
-    padding: 16,
-  },
-  closeBtn: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
-    zIndex: 1,
-    padding: 4,
-  },
-  closeText: {
-    fontSize: FontSize.bodySmall,
-    color: Colors.muted,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingRight: 24,
-    marginBottom: 10,
-  },
-  photoWrap: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    borderWidth: 2.5,
-    overflow: 'hidden',
-    flexShrink: 0,
-  },
-  photo: { width: '100%', height: '100%' },
-  photoFallback: {
-    width: '100%',
-    height: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  initial: { color: Colors.white, fontWeight: '700', fontSize: FontSize.body },
-  info: {
-    flex: 1,
-    gap: 3,
-  },
-  name: {
-    fontSize: FontSize.bodySmall,
-    fontWeight: '700',
-    color: Colors.brand,
-    letterSpacing: LetterSpacing.body,
-  },
-  sub: {
-    fontSize: FontSize.caption,
-    fontWeight: '400',
-    color: Colors.muted,
-    letterSpacing: LetterSpacing.caption,
-  },
-  distanceRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-  },
-  distance: {
-    fontSize: FontSize.caption,
-    fontWeight: '400',
-    color: Colors.muted,
-    letterSpacing: LetterSpacing.caption,
-  },
-  navBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    backgroundColor: Colors.brand,
-    borderRadius: 10,
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-  },
-  navBtnText: {
-    fontSize: FontSize.micro,
-    fontWeight: '600',
-    color: Colors.white,
-    includeFontPadding: false,
-  },
-  quote: {
-    fontSize: FontSize.bodySmall,
-    fontWeight: '400',
-    color: Colors.body,
-    fontStyle: 'italic',
-    lineHeight: 20,
-    marginBottom: 14,
-  },
-  btn: {
-    height: 42,
-    backgroundColor: Colors.brand,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  btnText: {
-    color: Colors.white,
-    fontWeight: '700',
-    fontSize: FontSize.body,
-    includeFontPadding: false,
-  },
-});

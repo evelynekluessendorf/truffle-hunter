@@ -1,29 +1,23 @@
 import React from 'react';
-import {
-  View, Text, StyleSheet, TouchableOpacity, ScrollView,
-  KeyboardAvoidingView, Platform,
-} from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types';
-import { Colors } from '../constants/colors';
-import { FontSize, LetterSpacing, Spacing, Radius, FontFamily } from '../constants/theme';
-import RegistrationProgressBar from '../components/RegistrationProgressBar';
 import { useUser } from '../context/UserContext';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'RegistrationInterests'>;
 
 const INTERESTS = [
-  { label: 'Music', emoji: '🎵' }, { label: 'Film', emoji: '🎬' },
-  { label: 'Reading', emoji: '📖' }, { label: 'Food', emoji: '🍕' },
-  { label: 'Travel', emoji: '✈️' }, { label: 'Running', emoji: '🏃' },
-  { label: 'Gaming', emoji: '🎮' }, { label: 'Art', emoji: '🎨' },
-  { label: 'Nature', emoji: '🌿' }, { label: 'Psychology', emoji: '🧠' },
-  { label: 'Sports', emoji: '⚽' }, { label: 'Tech', emoji: '💻' },
-  { label: 'Podcasts', emoji: '🎙️' }, { label: 'Languages', emoji: '🌍' },
-  { label: 'Photography', emoji: '📸' }, { label: 'Theatre', emoji: '🎭' },
-  { label: 'Science', emoji: '🔬' }, { label: 'Concerts', emoji: '🎸' },
-  { label: 'Wellness', emoji: '🧘' }, { label: 'Writing', emoji: '📝' },
+  { label: 'Music',       emoji: '🎵' }, { label: 'Film',        emoji: '🎬' },
+  { label: 'Reading',     emoji: '📖' }, { label: 'Food',        emoji: '🍕' },
+  { label: 'Travel',      emoji: '✈️' }, { label: 'Running',     emoji: '🏃' },
+  { label: 'Gaming',      emoji: '🎮' }, { label: 'Art',         emoji: '🎨' },
+  { label: 'Nature',      emoji: '🍀' }, { label: 'Psychology',  emoji: '🧠' },
+  { label: 'Sports',      emoji: '⚽' }, { label: 'Tech',        emoji: '💻' },
+  { label: 'Podcasts',    emoji: '🎙️' }, { label: 'Languages',   emoji: '🌍' },
+  { label: 'Photography', emoji: '📸' }, { label: 'Theatre',     emoji: '🎭' },
+  { label: 'Science',     emoji: '🔬' }, { label: 'Concerts',    emoji: '🎸' },
+  { label: 'Wellness',    emoji: '🧘' }, { label: 'Writing',     emoji: '📝' },
 ];
 
 export default function RegistrationInterestsScreen({ navigation }: Props) {
@@ -40,58 +34,96 @@ export default function RegistrationInterestsScreen({ navigation }: Props) {
   const canProceed = selected.size >= 3;
 
   return (
-    <View style={{ flex: 1, backgroundColor: Colors.brand }}>
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={{ flex: 1, backgroundColor: Colors.white }}
-    >
-      <ScrollView contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 16 }]} showsVerticalScrollIndicator={false}>
-            <RegistrationProgressBar step={5} />
-            <Text style={styles.heading}>Select at least 3 interests</Text>
-            <Text style={styles.subheading}>This will be presented on your profile and can help people around you to know what you have in common</Text>
-            <View style={styles.tagsWrap}>
-              {INTERESTS.map(({ label, emoji }) => {
-                const on = selected.has(label);
-                return (
-                  <TouchableOpacity
-                    key={label}
-                    style={[styles.tag, on && styles.tagOn]}
-                    onPress={() => toggle(label)}
-                    activeOpacity={0.75}
-                  >
-                    <Text style={styles.tagText}>{emoji} <Text style={[styles.tagLabel, on && styles.tagLabelOn]}>{label}</Text></Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
+    <View style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
+
+      {/* BACK + PROGRESS */}
+      <View style={{ paddingTop: insets.top, paddingHorizontal: 24 }}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={{ paddingVertical: 12 }}>
+          <Text style={{ fontSize: 16, fontWeight: '500', color: '#000000' }}>{'< Back'}</Text>
+        </TouchableOpacity>
+        <View style={{ height: 3, backgroundColor: '#E5E7F0', borderRadius: 3, overflow: 'hidden', marginBottom: 4 }}>
+          <View style={{ width: '85%', height: '100%', backgroundColor: '#000FE1', borderRadius: 3 }} />
+        </View>
+      </View>
+
+      <ScrollView
+        contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 24, paddingBottom: 24 }}
+        showsVerticalScrollIndicator={false}
+      >
+
+        {/* HEADING */}
+        <Text style={{ fontSize: 28, fontWeight: '700', color: '#000000', lineHeight: 34, marginBottom: 10 }}>
+          What are you into?
+        </Text>
+
+        {/* SUBTITLE */}
+        <Text style={{ fontSize: 15, color: '#333333', lineHeight: 22, marginBottom: 28 }}>
+          Pick{' '}
+          <Text style={{ fontWeight: '700', textDecorationLine: 'underline', color: '#333333' }}>
+            at least 3
+          </Text>
+          . These help us sort your people nearby
+        </Text>
+
+        {/* INTEREST PILLS */}
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+          {INTERESTS.map(({ label, emoji }) => {
+            const on = selected.has(label);
+            return (
+              <TouchableOpacity
+                key={label}
+                onPress={() => toggle(label)}
+                activeOpacity={0.75}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 4,
+                  borderRadius: 100,
+                  borderWidth: on ? 1.5 : 1,
+                  borderColor: on ? '#000FE1' : '#DDDDDD',
+                  backgroundColor: on ? '#EEF0FB' : '#FFFFFF',
+                  paddingHorizontal: 14,
+                  paddingVertical: 10,
+                }}
+              >
+                <Text style={{ fontSize: 14 }}>{emoji}</Text>
+                <Text style={{
+                  fontSize: 14,
+                  fontWeight: on ? '700' : '500',
+                  color: on ? '#000FE1' : '#111111',
+                }}>
+                  {label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
       </ScrollView>
 
-      <View style={[styles.footer, { paddingBottom: insets.bottom + 8 }]}>
+      {/* CTA */}
+      <View style={{
+        paddingHorizontal: 24,
+        paddingTop: 8,
+        paddingBottom: insets.bottom + 8,
+        backgroundColor: '#FFFFFF',
+      }}>
         <TouchableOpacity
-          style={[styles.doneBtn, !canProceed && styles.doneBtnDisabled]}
           onPress={() => canProceed && navigation.replace('Main')}
           activeOpacity={canProceed ? 0.85 : 1}
+          style={{
+            height: 56,
+            borderRadius: 12,
+            backgroundColor: '#000FE1',
+            opacity: canProceed ? 1 : 0.4,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
         >
-          <Text style={styles.doneBtnText}>Finish →</Text>
+          <Text style={{ color: '#FFFFFF', fontWeight: '600', fontSize: 16 }}>Next →</Text>
         </TouchableOpacity>
       </View>
-    </KeyboardAvoidingView>
+
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  scroll: { paddingHorizontal: Spacing.screen, paddingBottom: 16 },
-  heading: { fontSize: FontSize.displayMedium, fontWeight: '600', color: Colors.body, marginTop: 20, marginBottom: 10, lineHeight: 36, letterSpacing: LetterSpacing.displayMedium, fontFamily: FontFamily.brand },
-  subheading: { fontSize: FontSize.body, fontWeight: '400', color: Colors.muted, lineHeight: 24, marginBottom: 28 },
-  tagsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  tag: { borderRadius: Radius.tag, borderWidth: 1.5, borderColor: Colors.border, backgroundColor: Colors.white, paddingVertical: 10, paddingHorizontal: 16 },
-  tagOn: { borderColor: Colors.brand, backgroundColor: Colors.selected },
-  tagText: { fontSize: FontSize.body, fontWeight: '400', color: Colors.body },
-  tagLabel: { fontWeight: '400', color: Colors.body },
-  tagLabelOn: { color: Colors.brand, fontWeight: '700' },
-  footer: { paddingHorizontal: Spacing.screen, paddingTop: 8, backgroundColor: Colors.white },
-  doneBtn: { height: 56, backgroundColor: Colors.orange, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  doneBtnDisabled: { backgroundColor: Colors.brand, opacity: 0.4 },
-  doneBtnText: { color: Colors.white, fontWeight: '700', fontSize: FontSize.body, letterSpacing: LetterSpacing.body, includeFontPadding: false },
-});

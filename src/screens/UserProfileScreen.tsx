@@ -1,15 +1,12 @@
 import React from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Linking,
-  KeyboardAvoidingView, Platform,
+  View, Text, ScrollView, TouchableOpacity, Image, Linking,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Colors } from '../constants/colors';
-import { FontSize, LetterSpacing, Spacing, Radius, FontFamily } from '../constants/theme';
-import UserAvatar from '../components/UserAvatar';
-import InterestTag from '../components/InterestTag';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types';
+import { interestEmojis } from '../data/mockData';
+
 type Props = NativeStackScreenProps<RootStackParamList, 'UserProfile'>;
 
 export default function UserProfileScreen({ route, navigation }: Props) {
@@ -17,225 +14,184 @@ export default function UserProfileScreen({ route, navigation }: Props) {
   const insets = useSafeAreaInsets();
 
   return (
-    <View style={{ flex: 1, backgroundColor: Colors.brand }}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={{ flex: 1, backgroundColor: Colors.white }}
-      >
+    <View style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
 
-        <View style={{ paddingTop: insets.top }}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-            <Text style={styles.backText}>‹ Back</Text>
-          </TouchableOpacity>
-        </View>
-
-        <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-            <View style={styles.avatarSection}>
-              <View style={styles.avatarWrapper}>
-                {user.photoUri ? (
-                  <Image source={{ uri: user.photoUri }} style={styles.photo} />
-                ) : (
-                  <UserAvatar name={user.name} color={user.avatarColor} size={140} photoUri={user.photoUri} />
-                )}
-              </View>
-            </View>
-
-            <View style={styles.content}>
-              <Text style={styles.name}>{user.name}</Text>
-              {user.conversationCount !== undefined && (
-                <Text style={styles.conversationCount}>
-                  <Text style={styles.convOrange}>{user.conversationCount} conversations</Text>
-                  {' '}in the last 30 days
-                </Text>
-              )}
-              <View style={styles.tagsRow}>
-                <Text style={styles.metaTag}>⚙ {user.year}</Text>
-                <Text style={styles.metaTag}>⊕ {user.major}</Text>
-              </View>
-              {user.distance && (
-                <Text style={styles.distance}>📍 {user.distance}</Text>
-              )}
-
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>ICE BREAKERS</Text>
-                {user.iceBreakers.map((item, i) => (
-                  <View key={i} style={styles.iceBreakerRow}>
-                    <Text style={styles.iceBreakerBullet}>·</Text>
-                    <Text style={styles.iceBreakerText}>{item}</Text>
-                  </View>
-                ))}
-              </View>
-
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>INTERESTS</Text>
-                <View style={styles.tagsWrap}>
-                  {user.interests.map(tag => (
-                    <InterestTag key={tag} label={tag} />
-                  ))}
-                </View>
-              </View>
-
-              {user.socialLinks && (Object.values(user.socialLinks).some(Boolean)) && (
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>SOCIAL</Text>
-                  <View style={styles.socialList}>
-                    {user.socialLinks.instagram && (
-                      <TouchableOpacity style={styles.socialRow} onPress={() => Linking.openURL(`https://instagram.com/${user.socialLinks!.instagram}`)}>
-                        <Text style={styles.socialIcon}>📸</Text>
-                        <Text style={styles.socialHandle}>@{user.socialLinks.instagram}</Text>
-                        <Text style={styles.socialArrow}>›</Text>
-                      </TouchableOpacity>
-                    )}
-                    {user.socialLinks.tiktok && (
-                      <TouchableOpacity style={styles.socialRow} onPress={() => Linking.openURL(`https://tiktok.com/@${user.socialLinks!.tiktok}`)}>
-                        <Text style={styles.socialIcon}>🎵</Text>
-                        <Text style={styles.socialHandle}>@{user.socialLinks.tiktok}</Text>
-                        <Text style={styles.socialArrow}>›</Text>
-                      </TouchableOpacity>
-                    )}
-                    {user.socialLinks.facebook && (
-                      <TouchableOpacity style={styles.socialRow} onPress={() => Linking.openURL(`https://facebook.com/${user.socialLinks!.facebook}`)}>
-                        <Text style={styles.socialIcon}>👤</Text>
-                        <Text style={styles.socialHandle}>@{user.socialLinks.facebook}</Text>
-                        <Text style={styles.socialArrow}>›</Text>
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                </View>
-              )}
-
-              <TouchableOpacity style={styles.blockLink}>
-                <Text style={styles.blockText}>Block or Report</Text>
-              </TouchableOpacity>
-            </View>
-        </ScrollView>
-
-        <View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}>
-        <TouchableOpacity
-          style={styles.ctaBtn}
-          onPress={() => navigation.navigate('Main', { screen: 'Discover', params: { sayHiUser: user } } as any)}
-        >
-          <Text style={styles.ctaBtnText}>Say Hi!</Text>
+      {/* BACK */}
+      <View style={{ paddingTop: insets.top + 8, paddingHorizontal: 24 }}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={{ paddingVertical: 8 }}>
+          <Text style={{ fontSize: 16, fontWeight: '500', color: '#000000' }}>{'< Back'}</Text>
         </TouchableOpacity>
       </View>
-      </KeyboardAvoidingView>
+
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
+
+        {/* PHOTO */}
+        <View style={{ alignItems: 'center', marginTop: 16, marginBottom: 4 }}>
+          {user.photoUri ? (
+            <Image
+              source={{ uri: user.photoUri }}
+              style={{ width: 160, height: 160, borderRadius: 20 }}
+            />
+          ) : (
+            <View style={{
+              width: 160, height: 160, borderRadius: 20,
+              backgroundColor: '#EF4514',
+              alignItems: 'center', justifyContent: 'center',
+            }}>
+              <Text style={{ fontSize: 64, fontWeight: '700', color: '#FFFFFF' }}>
+                {user.name.charAt(0)}
+              </Text>
+            </View>
+          )}
+        </View>
+
+        {/* NAME */}
+        <Text style={{
+          fontSize: 32, fontWeight: '700', color: '#000000',
+          marginTop: 16, paddingHorizontal: 24, marginBottom: 4,
+        }}>
+          {user.name}
+        </Text>
+
+        {/* CONVERSATION COUNT */}
+        {user.conversationCount !== undefined && (
+          <Text style={{ fontSize: 14, paddingHorizontal: 24, marginBottom: 6 }}>
+            <Text style={{ fontWeight: '700', color: '#000FE1' }}>
+              {user.conversationCount} conversations
+            </Text>
+            <Text style={{ fontWeight: '400', color: '#333333' }}> in the last 30 days</Text>
+          </Text>
+        )}
+
+        {/* YEAR + MAJOR */}
+        <View style={{ flexDirection: 'row', gap: 16, paddingHorizontal: 24, marginBottom: 4 }}>
+          <Text style={{ fontSize: 13, color: '#888888' }}>⊙ {user.year}</Text>
+          <Text style={{ fontSize: 13, color: '#888888' }}>⊕ {user.major}</Text>
+        </View>
+
+        {/* DISTANCE */}
+        {user.distance && (
+          <Text style={{ fontSize: 13, color: '#EF4514', paddingHorizontal: 24, marginBottom: 4 }}>
+            📍 {user.distance}
+          </Text>
+        )}
+
+        {/* ICE BREAKERS */}
+        <Text style={{
+          fontSize: 11, fontWeight: '700', color: '#000000',
+          letterSpacing: 1.5, paddingHorizontal: 24, marginTop: 20, marginBottom: 12,
+        }}>
+          ICE BREAKERS
+        </Text>
+        {user.iceBreakers.map((item, i) => (
+          <View key={i} style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8, paddingHorizontal: 24, marginBottom: 16 }}>
+            <Text style={{ fontSize: 16, color: 'rgba(0,14,225,0.45)', lineHeight: 24, marginTop: 1 }}>·</Text>
+            <Text style={{ flex: 1, fontSize: 15, fontWeight: '400', color: '#000000', lineHeight: 24 }}>
+              {item}
+            </Text>
+          </View>
+        ))}
+
+        {/* INTERESTS */}
+        {user.interests.length > 0 && (
+          <>
+            <Text style={{
+              fontSize: 11, fontWeight: '700', color: '#000000',
+              letterSpacing: 1.5, paddingHorizontal: 24, marginTop: 20, marginBottom: 12,
+            }}>
+              INTERESTS
+            </Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 24 }}>
+              {user.interests.map(tag => (
+                <View key={tag} style={{
+                  backgroundColor: '#F0F1FA',
+                  borderRadius: 100,
+                  paddingHorizontal: 14,
+                  paddingVertical: 8,
+                }}>
+                  <Text style={{ fontSize: 13, color: '#000FE1', fontWeight: '500' }}>
+                    {interestEmojis[tag] || '✨'} {tag}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </>
+        )}
+
+        {/* SOCIAL */}
+        {user.socialLinks && Object.values(user.socialLinks).some(Boolean) && (
+          <>
+            <Text style={{
+              fontSize: 11, fontWeight: '700', color: '#000000',
+              letterSpacing: 1.5, paddingHorizontal: 24, marginTop: 20, marginBottom: 12,
+            }}>
+              SOCIAL
+            </Text>
+            <View style={{ paddingHorizontal: 24, gap: 10 }}>
+              {user.socialLinks.instagram && (
+                <TouchableOpacity
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 }}
+                  onPress={() => Linking.openURL(`https://instagram.com/${user.socialLinks!.instagram}`)}
+                >
+                  <Text style={{ fontSize: 16 }}>📸</Text>
+                  <Text style={{ flex: 1, fontSize: 16, fontWeight: '600', color: '#000FE1' }}>
+                    @{user.socialLinks.instagram}
+                  </Text>
+                  <Text style={{ fontSize: 20, color: '#888888' }}>›</Text>
+                </TouchableOpacity>
+              )}
+              {user.socialLinks.tiktok && (
+                <TouchableOpacity
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 }}
+                  onPress={() => Linking.openURL(`https://tiktok.com/@${user.socialLinks!.tiktok}`)}
+                >
+                  <Text style={{ fontSize: 16 }}>🎵</Text>
+                  <Text style={{ flex: 1, fontSize: 16, fontWeight: '600', color: '#000FE1' }}>
+                    @{user.socialLinks.tiktok}
+                  </Text>
+                  <Text style={{ fontSize: 20, color: '#888888' }}>›</Text>
+                </TouchableOpacity>
+              )}
+              {user.socialLinks.facebook && (
+                <TouchableOpacity
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 }}
+                  onPress={() => Linking.openURL(`https://facebook.com/${user.socialLinks!.facebook}`)}
+                >
+                  <Text style={{ fontSize: 16 }}>👤</Text>
+                  <Text style={{ flex: 1, fontSize: 16, fontWeight: '600', color: '#000FE1' }}>
+                    @{user.socialLinks.facebook}
+                  </Text>
+                  <Text style={{ fontSize: 20, color: '#888888' }}>›</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </>
+        )}
+
+      </ScrollView>
+
+      {/* CTA */}
+      <View style={{
+        paddingHorizontal: 24,
+        paddingTop: 8,
+        paddingBottom: insets.bottom + 8,
+        backgroundColor: '#FFFFFF',
+      }}>
+        <TouchableOpacity
+          style={{
+            height: 56,
+            backgroundColor: '#000FE1',
+            borderRadius: 12,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+          onPress={() => navigation.navigate('Main', { screen: 'Discover', params: { sayHiUser: user } } as any)}
+          activeOpacity={0.85}
+        >
+          <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 16 }}>Say Hi!</Text>
+        </TouchableOpacity>
+      </View>
+
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  backBtn: { paddingHorizontal: Spacing.screen, paddingVertical: 12 },
-  backText: { fontSize: FontSize.body, fontWeight: '500', color: Colors.body },
-  scroll: { paddingBottom: 24 },
-  avatarSection: {
-    alignItems: 'center',
-    paddingBottom: 16,
-  },
-  avatarWrapper: {
-    borderRadius: 24,
-    overflow: 'hidden',
-  },
-  photo: {
-    width: 140,
-    height: 140,
-    borderRadius: 24,
-  },
-  content: { paddingHorizontal: Spacing.screen },
-  name: {
-    fontSize: FontSize.displayMedium,
-    fontWeight: '700',
-    fontFamily: FontFamily.brand,
-    color: Colors.body,
-    marginBottom: 4,
-    letterSpacing: LetterSpacing.displayMedium,
-  },
-  conversationCount: {
-    fontSize: FontSize.bodySmall,
-    fontWeight: '400',
-    color: Colors.body,
-    marginBottom: 8,
-  },
-  convOrange: {
-    color: Colors.orange,
-    fontWeight: '700',
-  },
-  tagsRow: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 6,
-  },
-  metaTag: { fontSize: FontSize.bodySmall, fontWeight: '400', color: Colors.muted },
-  distance: { fontSize: FontSize.caption, fontWeight: '400', color: Colors.coral, marginBottom: Spacing.section, letterSpacing: LetterSpacing.caption },
-  section: { marginBottom: Spacing.section },
-  sectionTitle: {
-    fontSize: FontSize.micro,
-    fontWeight: '700',
-    color: Colors.body,
-    letterSpacing: 0.8,
-    marginBottom: 12,
-  },
-  iceBreakerRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 8,
-    marginBottom: 10,
-  },
-  iceBreakerBullet: {
-    fontSize: FontSize.body,
-    color: Colors.coral,
-    lineHeight: 26,
-    marginTop: 1,
-  },
-  iceBreakerText: {
-    flex: 1,
-    fontSize: FontSize.body,
-    fontWeight: '400',
-    color: Colors.body,
-    lineHeight: 26,
-  },
-  tagsWrap: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  socialList: { gap: 10 },
-  socialRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingVertical: 4,
-  },
-  socialIcon: { fontSize: FontSize.body },
-  socialHandle: { flex: 1, fontSize: FontSize.body, fontWeight: '600', color: Colors.orange },
-  socialArrow: { fontSize: FontSize.sectionHeader, color: Colors.muted },
-  blockLink: {
-    alignItems: 'flex-end',
-    marginBottom: Spacing.section,
-  },
-  blockText: {
-    fontSize: FontSize.caption,
-    fontWeight: '400',
-    color: Colors.orange,
-    textDecorationLine: 'underline',
-    letterSpacing: LetterSpacing.caption,
-  },
-  footer: {
-    paddingHorizontal: Spacing.screen,
-    paddingTop: 12,
-    backgroundColor: Colors.white,
-  },
-  ctaBtn: {
-    height: 56,
-    backgroundColor: Colors.orange,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  ctaBtnText: {
-    color: Colors.white,
-    fontWeight: '700',
-    fontSize: FontSize.body,
-    letterSpacing: LetterSpacing.body,
-    includeFontPadding: false,
-  },
-});

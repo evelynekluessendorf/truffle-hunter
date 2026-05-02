@@ -1,20 +1,17 @@
 import React, { useState, useRef } from 'react';
 import {
-  View, Text, StyleSheet, TextInput, TouchableOpacity,
+  View, Text, TextInput, TouchableOpacity,
   ScrollView, Alert, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types';
-import { Colors } from '../constants/colors';
-import { FontSize, LetterSpacing, Spacing, Radius, FontFamily } from '../constants/theme';
 import { useUser } from '../context/UserContext';
-import RegistrationProgressBar from '../components/RegistrationProgressBar';
 
 const SOCIAL_PLATFORMS = [
-  { key: 'instagram' as const, label: 'Instagram', placeholder: '@username' },
-  { key: 'tiktok'    as const, label: 'TikTok',    placeholder: '@username' },
-  { key: 'facebook'  as const, label: 'Facebook',  placeholder: 'username or profile name' },
+  { key: 'instagram' as const, label: 'Instagram', icon: '📸', placeholder: '@username' },
+  { key: 'tiktok'    as const, label: 'TikTok',    icon: '🎵', placeholder: '@username' },
+  { key: 'facebook'  as const, label: 'Facebook',  icon: '👤', placeholder: 'Profile URL' },
 ];
 const ORDINALS = ['1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th', '9th', '10th'];
 
@@ -39,84 +36,173 @@ export default function RegistrationFactsScreen({ navigation }: Props) {
     setTimeout(() => inputRefs.current[next]?.focus(), 100);
   };
 
-  const label = (i: number) => `${ORDINALS[i] ?? `${i + 1}th`} unknown fact${i < 3 ? '*' : ''}`;
+  const label = (i: number) => `${ORDINALS[i] ?? `${i + 1}th`} unknown fact${i < 3 ? '*' : ''}:`;
 
   return (
-    <View style={{ flex: 1, backgroundColor: Colors.brand }}>
     <KeyboardAvoidingView
+      style={{ flex: 1, backgroundColor: '#FFFFFF' }}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={{ flex: 1, backgroundColor: Colors.white }}
     >
-      <ScrollView contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 16 }]} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-            <RegistrationProgressBar step={4} />
-            <Text style={styles.heading}>What makes you... you?</Text>
-            <Text style={styles.subheading}>
-              These are the things that'll make someone walk across a room and meet you. Read the{' '}
-              <Text style={styles.rulesLink} onPress={() => Alert.alert('Rules', "Be specific, surprising, and genuine. Generic facts like \"I like music\" won't spark a conversation. Tell us something only you would say.")}>
-                rules
-              </Text>.
+
+      {/* BACK + PROGRESS */}
+      <View style={{ paddingTop: insets.top, paddingHorizontal: 24 }}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={{ paddingVertical: 12 }}>
+          <Text style={{ fontSize: 16, fontWeight: '500', color: '#000000' }}>{'< Back'}</Text>
+        </TouchableOpacity>
+        <View style={{ height: 3, backgroundColor: '#E5E7F0', borderRadius: 3, overflow: 'hidden', marginBottom: 4 }}>
+          <View style={{ width: '65%', height: '100%', backgroundColor: '#000FE1', borderRadius: 3 }} />
+        </View>
+      </View>
+
+      <ScrollView
+        contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 24, paddingBottom: 24 }}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+
+        {/* HEADING */}
+        <Text style={{ fontSize: 28, fontWeight: '700', color: '#000000', lineHeight: 34, marginBottom: 10 }}>
+          What makes you... you?
+        </Text>
+
+        {/* SUBTITLE with rules link */}
+        <Text style={{ fontSize: 15, color: '#333333', lineHeight: 22, marginBottom: 20 }}>
+          These are the things that'll make someone walk across a room and meet you. Read the{' '}
+          <Text
+            style={{ textDecorationLine: 'underline', color: '#333333' }}
+            onPress={() => Alert.alert('Rules', "Be specific, surprising, and genuine. Generic facts like \"I like music\" won't spark a conversation. Tell us something only you would say.")}
+          >
+            rules
+          </Text>.
+        </Text>
+
+        {/* EXAMPLE CARD */}
+        <View style={{
+          backgroundColor: '#EEF0FB',
+          borderRadius: 12,
+          padding: 16,
+          marginBottom: 28,
+          gap: 12,
+        }}>
+          {/* Weak row */}
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10 }}>
+            <View style={{ backgroundColor: '#FDDCDB', borderRadius: 100, paddingHorizontal: 8, paddingVertical: 3, flexShrink: 0, marginTop: 1 }}>
+              <Text style={{ fontSize: 12, fontWeight: '700', color: '#C0392B' }}>Weak</Text>
+            </View>
+            <Text style={{ flex: 1, fontSize: 14, color: '#333333', lineHeight: 20, fontStyle: 'italic' }}>
+              I like music / I love to travel / I'm a cat person
             </Text>
-
-            <View style={styles.examplesCard}>
-              <View style={styles.exampleRow}>
-                <View style={[styles.weakBadge, styles.weakRed]}><Text style={[styles.weakText, styles.weakRedText]}>Weak</Text></View>
-                <Text style={styles.exampleText}>I like music / I love to travel / I'm a cat person</Text>
-              </View>
-              <View style={styles.exampleRow}>
-                <View style={[styles.weakBadge, styles.weakTeal]}><Text style={[styles.weakText, styles.weakTealText]}>Strong</Text></View>
-                <Text style={styles.exampleText}>I once got stuck in an elevator with a senator / I trained in circus acrobatics for 3 years</Text>
-              </View>
+          </View>
+          {/* Strong row */}
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10 }}>
+            <View style={{ backgroundColor: '#DDE3FF', borderRadius: 100, paddingHorizontal: 8, paddingVertical: 3, flexShrink: 0, marginTop: 1 }}>
+              <Text style={{ fontSize: 12, fontWeight: '700', color: '#000FE1' }}>Strong</Text>
             </View>
+            <Text style={{ flex: 1, fontSize: 14, color: '#333333', lineHeight: 20, fontStyle: 'italic' }}>
+              I once got stuck in an elevator with a senator/ I trained in circus acrobatics for 3 years
+            </Text>
+          </View>
+        </View>
 
-            {facts.map((text, i) => (
-              <View key={i} style={styles.factGroup}>
-                <Text style={styles.factLabel}>{label(i)}</Text>
-                <TextInput
-                  ref={el => { inputRefs.current[i] = el; }}
-                  style={[styles.factInput, focusedIndex === i && styles.factInputActive]}
-                  value={text}
-                  onChangeText={v => setFacts(prev => prev.map((f, idx) => idx === i ? v : f))}
-                  onFocus={() => setFocusedIndex(i)}
-                  onBlur={() => setFocusedIndex(null)}
-                  placeholder="Share something surprising about you..."
-                  placeholderTextColor="#BBADA5"
-                  multiline
-                  textAlignVertical="top"
-                />
-                {i === facts.length - 1 && i >= 2 && (
-                  <TouchableOpacity style={styles.addRow} onPress={addFact} activeOpacity={0.7}>
-                    <View style={styles.addCircle}><Text style={styles.addCircleText}>+1</Text></View>
-                    <Text style={styles.addRowText}>Add another</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-            ))}
+        {/* FACT INPUTS */}
+        {facts.map((text, i) => (
+          <View key={i} style={{ marginBottom: 20 }}>
+            <Text style={{ fontSize: 14, fontWeight: '700', color: '#000000', marginBottom: 8 }}>
+              {label(i)}
+            </Text>
+            <TextInput
+              ref={el => { inputRefs.current[i] = el; }}
+              style={{
+                minHeight: 80,
+                backgroundColor: '#FFFFFF',
+                borderRadius: 10,
+                paddingHorizontal: 14,
+                paddingVertical: 14,
+                fontSize: 16,
+                color: '#000000',
+                borderWidth: focusedIndex === i ? 1.5 : 1,
+                borderColor: focusedIndex === i ? '#000FE1' : '#DDDDDD',
+                lineHeight: 24,
+                textAlignVertical: 'top',
+              }}
+              value={text}
+              onChangeText={v => setFacts(prev => prev.map((f, idx) => idx === i ? v : f))}
+              onFocus={() => setFocusedIndex(i)}
+              onBlur={() => setFocusedIndex(null)}
+              placeholder="Share something surprising about you..."
+              placeholderTextColor="#BBADA5"
+              multiline
+              textAlignVertical="top"
+            />
+          </View>
+        ))}
 
-            <View style={styles.socialSection}>
-              <Text style={styles.socialHeading}>Social (optional)</Text>
-              <Text style={styles.socialSub}>Let people find you after you meet</Text>
-              {SOCIAL_PLATFORMS.map(({ key, label: lbl, placeholder }) => (
-                <View key={key} style={styles.socialRow}>
-                  <View style={styles.socialField}>
-                    <Text style={styles.socialLabel}>{lbl}</Text>
-                    <TextInput
-                      style={styles.socialInput}
-                      value={social[key]}
-                      onChangeText={val => setSocial(prev => ({ ...prev, [key]: val }))}
-                      placeholder={placeholder}
-                      placeholderTextColor="#BBADA5"
-                      autoCapitalize="none"
-                      autoCorrect={false}
-                    />
-                  </View>
-                </View>
-              ))}
+        {/* ADD ANOTHER */}
+        <TouchableOpacity
+          onPress={addFact}
+          activeOpacity={0.7}
+          style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 32 }}
+        >
+          <View style={{
+            width: 32, height: 32, borderRadius: 16,
+            borderWidth: 1.5, borderColor: '#888888',
+            alignItems: 'center', justifyContent: 'center',
+          }}>
+            <Text style={{ fontSize: 20, color: '#888888', lineHeight: 22 }}>+</Text>
+          </View>
+          <Text style={{ fontSize: 15, color: '#888888' }}>Add another</Text>
+        </TouchableOpacity>
+
+        {/* SOCIAL MEDIA SECTION */}
+        <View style={{ marginBottom: 16 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+            <Text style={{ fontSize: 16, fontWeight: '700', color: '#000000' }}>Social media</Text>
+            <Text style={{ fontSize: 14, color: '#888888' }}>(optional)</Text>
+          </View>
+          <Text style={{ fontSize: 13, color: '#888888', marginBottom: 16 }}>
+            Your links are only visible on your profile card
+          </Text>
+
+          {SOCIAL_PLATFORMS.map(({ key, icon, placeholder }) => (
+            <View
+              key={key}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 10,
+                borderWidth: 1,
+                borderColor: '#DDDDDD',
+                borderRadius: 10,
+                paddingHorizontal: 14,
+                height: 52,
+                marginBottom: 10,
+                backgroundColor: '#FFFFFF',
+              }}
+            >
+              <Text style={{ fontSize: 20 }}>{icon}</Text>
+              <TextInput
+                style={{ flex: 1, fontSize: 16, color: '#000000', padding: 0 }}
+                value={social[key]}
+                onChangeText={val => setSocial(prev => ({ ...prev, [key]: val }))}
+                placeholder={placeholder}
+                placeholderTextColor="#BBADA5"
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
             </View>
+          ))}
+        </View>
+
       </ScrollView>
 
-      <View style={[styles.footer, { paddingBottom: insets.bottom + 8 }]}>
+      {/* CTA */}
+      <View style={{
+        paddingHorizontal: 24,
+        paddingTop: 8,
+        paddingBottom: insets.bottom + 8,
+        backgroundColor: '#FFFFFF',
+      }}>
         <TouchableOpacity
-          style={[styles.nextBtn, !canProceed && styles.nextBtnDisabled]}
           onPress={() => {
             if (!canProceed) return;
             setSocialLinks({
@@ -127,51 +213,19 @@ export default function RegistrationFactsScreen({ navigation }: Props) {
             navigation.navigate('RegistrationInterests');
           }}
           activeOpacity={canProceed ? 0.85 : 1}
+          style={{
+            height: 56,
+            borderRadius: 12,
+            backgroundColor: '#000FE1',
+            opacity: canProceed ? 1 : 0.4,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
         >
-          <View style={styles.nextRow}>
-            <Text style={styles.nextText}>Next</Text>
-            <Text style={styles.nextArrow}>→</Text>
-          </View>
+          <Text style={{ color: '#FFFFFF', fontWeight: '600', fontSize: 16 }}>Next →</Text>
         </TouchableOpacity>
       </View>
+
     </KeyboardAvoidingView>
-    </View>
   );
 }
-
-const styles = StyleSheet.create({
-  scroll: { paddingHorizontal: Spacing.screen, paddingBottom: 16 },
-  heading: { fontSize: FontSize.displayMedium, fontWeight: '600', color: Colors.body, marginTop: 20, marginBottom: 10, lineHeight: 36, letterSpacing: LetterSpacing.displayMedium, fontFamily: FontFamily.brand },
-  subheading: { fontSize: FontSize.body, fontWeight: '400', color: Colors.muted, lineHeight: 24, marginBottom: 20 },
-  rulesLink: { color: Colors.body, textDecorationLine: 'underline' },
-  examplesCard: { backgroundColor: Colors.secondaryCTA, borderRadius: Radius.card, padding: Spacing.card, marginBottom: 24, gap: 12 },
-  exampleRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
-  weakBadge: { borderRadius: 20, paddingHorizontal: 10, paddingVertical: 3, marginTop: 1, flexShrink: 0 },
-  weakRed: { backgroundColor: 'rgba(239,69,20,0.12)' },
-  weakTeal: { backgroundColor: 'rgba(0,14,225,0.08)' },
-  weakText: { fontSize: FontSize.micro, fontWeight: '700', letterSpacing: LetterSpacing.micro },
-  weakRedText: { color: '#EF4514' },
-  weakTealText: { color: Colors.brand },
-  exampleText: { flex: 1, fontSize: FontSize.caption, fontWeight: '400', color: Colors.body, lineHeight: 18, letterSpacing: LetterSpacing.caption },
-  factGroup: { marginBottom: 16 },
-  factLabel: { fontSize: FontSize.micro, fontWeight: '700', color: Colors.body, letterSpacing: 0.8, marginBottom: 6, textTransform: 'uppercase' },
-  factInput: { minHeight: 80, backgroundColor: Colors.white, borderRadius: Radius.button, paddingHorizontal: Spacing.card, paddingVertical: 14, fontSize: FontSize.body, fontWeight: '400', color: Colors.body, borderWidth: 1, borderColor: Colors.border, lineHeight: 26, textAlignVertical: 'top' },
-  factInputActive: { borderColor: Colors.brand, borderWidth: 1.5 },
-  addRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 12, marginBottom: 8 },
-  addCircle: { height: 32, paddingHorizontal: 12, borderRadius: 16, borderWidth: 1.5, borderColor: Colors.brand, alignItems: 'center', justifyContent: 'center' },
-  addCircleText: { fontSize: FontSize.bodySmall, color: Colors.brand, fontWeight: '700' },
-  addRowText: { fontSize: FontSize.body, fontWeight: '400', color: Colors.brand },
-  footer: { paddingHorizontal: Spacing.screen, paddingTop: 8, backgroundColor: Colors.white },
-  nextBtn: { height: 56, backgroundColor: Colors.orange, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  nextBtnDisabled: { backgroundColor: Colors.brand, opacity: 0.4 },
-  nextRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  nextText: { color: Colors.white, fontWeight: '700', fontSize: FontSize.body, letterSpacing: LetterSpacing.body, includeFontPadding: false },
-  nextArrow: { color: Colors.white, fontWeight: '700', fontSize: FontSize.body, letterSpacing: LetterSpacing.body, includeFontPadding: false, lineHeight: 20 },
-  socialSection: { marginBottom: 24, marginTop: 8 },
-  socialHeading: { fontSize: FontSize.body, fontWeight: '700', color: Colors.body, letterSpacing: LetterSpacing.body, marginBottom: 4 },
-  socialSub: { fontSize: FontSize.bodySmall, fontWeight: '400', color: Colors.muted, marginBottom: 16 },
-  socialRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.white, borderRadius: Radius.button, borderWidth: 1, borderColor: Colors.border, paddingHorizontal: Spacing.card, paddingVertical: 12, gap: 12, marginBottom: 10 },
-  socialField: { flex: 1 },
-  socialLabel: { fontSize: FontSize.bodySmall, fontWeight: '600', color: Colors.muted, marginBottom: 2 },
-  socialInput: { fontSize: FontSize.body, fontWeight: '400', color: Colors.body, padding: 0 },
-});

@@ -1,135 +1,47 @@
-import React from 'react';
-import {
-  View, Text, StyleSheet, TextInput, TouchableOpacity,
-  ScrollView, KeyboardAvoidingView, Platform,
-} from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types';
-import { Colors } from '../constants/colors';
-import { FontSize, LetterSpacing, Spacing, Radius, FontFamily } from '../constants/theme';
-import RegistrationProgressBar from '../components/RegistrationProgressBar';
-import { useUser } from '../context/UserContext';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Registration1'>;
 
 export default function Registration1Screen({ navigation, route }: Props) {
-  const isLogin = route.params?.mode === 'login';
-  const { registrationDraft, setRegistrationDraft } = useUser();
   const insets = useSafeAreaInsets();
-  const email = registrationDraft.email;
-  const setEmail = (v: string) => setRegistrationDraft({ email: v });
-  const canProceed = email.trim().length > 0;
+  const [username, setUsername] = useState('');
 
   return (
-    <View style={{ flex: 1, backgroundColor: Colors.brand }}>
     <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={{ flex: 1, backgroundColor: Colors.white }}
-    >
-      <ScrollView contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 16 }]} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-        <RegistrationProgressBar step={1} />
-
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>💡 .edu email only</Text>
+      style={{ flex: 1, backgroundColor: '#FFFFFF' }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'padding'}
+      keyboardVerticalOffset={0}>
+      <View style={{ paddingTop: insets.top + 8, paddingHorizontal: 24 }}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginBottom: 12 }}>
+          <Text style={{ fontSize: 16, color: '#000000' }}>{'< Back'}</Text>
+        </TouchableOpacity>
+        <View style={{ height: 3, backgroundColor: '#E0E0E0', borderRadius: 2 }}>
+          <View style={{ width: '30%', height: 3, backgroundColor: '#000FE1', borderRadius: 2 }} />
         </View>
-
-        <Text style={styles.heading}>Provide university email</Text>
-
-        <View style={styles.fieldGroup}>
-          <Text style={styles.label}>UNIVERSITY EMAIL*</Text>
-          <TextInput
-            style={styles.input}
-            value={email}
-            onChangeText={setEmail}
-            placeholder="maya.chen@georgetown.edu"
-            placeholderTextColor="#BBADA5"
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoCorrect={false}
-            autoFocus
-          />
+      </View>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 24, paddingTop: 24 }} keyboardShouldPersistTaps="handled">
+        <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#E8F5E9', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 100, alignSelf: 'flex-start', marginBottom: 16 }}>
+          <Text style={{ fontSize: 13, color: '#2E7D32' }}>💡 .edu email only</Text>
         </View>
-      </ScrollView>
-
-      <View style={[styles.footer, { paddingBottom: insets.bottom + 8 }]}>
-        <TouchableOpacity
-          style={[styles.nextBtn, !canProceed && styles.nextBtnDisabled]}
-          onPress={() => canProceed && navigation.navigate('RegistrationVerification', { mode: isLogin ? 'login' : undefined })}
-          activeOpacity={canProceed ? 0.85 : 1}
-        >
-          <View style={styles.nextRow}>
-            <Text style={styles.nextText}>Next</Text>
-            <Text style={styles.nextArrow}>→</Text>
+        <Text style={{ fontSize: 28, fontWeight: '800', color: '#000000', marginBottom: 24 }}>Provide university email</Text>
+        <Text style={{ fontSize: 14, fontWeight: '700', color: '#000000', marginBottom: 8 }}>University Email*:</Text>
+        <View style={{ flexDirection: 'row', gap: 8, marginBottom: 24 }}>
+          <TextInput style={{ flex: 1.2, height: 52, borderWidth: 1, borderColor: '#CCCCCC', borderRadius: 10, paddingHorizontal: 12, fontSize: 15, color: '#000000', backgroundColor: '#FFFFFF' }} placeholder="maya.chen" placeholderTextColor="#AAAAAA" autoCapitalize="none" keyboardType="email-address" value={username} onChangeText={setUsername} />
+          <View style={{ flex: 1, height: 52, borderWidth: 1, borderColor: '#CCCCCC', borderRadius: 10, paddingHorizontal: 10, justifyContent: 'center', backgroundColor: '#F9F9F9' }}>
+            <Text style={{ fontSize: 13, color: '#888888' }}>@university.edu</Text>
           </View>
+        </View>
+        <View style={{ flex: 1 }} />
+      </ScrollView>
+      <View style={{ paddingHorizontal: 24, paddingTop: 8, paddingBottom: insets.bottom + 8, backgroundColor: '#FFFFFF' }}>
+        <TouchableOpacity onPress={() => navigation.navigate('Registration2')} style={{ height: 56, borderRadius: 12, backgroundColor: '#000FE1', alignItems: 'center', justifyContent: 'center' }}>
+          <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: '700' }}>Next →</Text>
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
-    </View>
   );
 }
-
-const styles = StyleSheet.create({
-  scroll: {
-    paddingHorizontal: Spacing.screen,
-    paddingBottom: 16,
-  },
-  badge: {
-    alignSelf: 'flex-start',
-    backgroundColor: 'rgba(0,14,225,0.08)',
-    borderRadius: 20,
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    marginTop: 20,
-    marginBottom: 20,
-  },
-  badgeText: {
-    fontSize: FontSize.caption,
-    color: Colors.brand,
-    fontWeight: '600',
-    letterSpacing: LetterSpacing.caption,
-  },
-  heading: {
-    fontSize: FontSize.displayMedium,
-    fontWeight: '600',
-    color: Colors.body,
-    lineHeight: 36,
-    marginBottom: 10,
-    letterSpacing: LetterSpacing.displayMedium,
-    fontFamily: FontFamily.brand,
-  },
-  fieldGroup: { marginBottom: 24 },
-  label: {
-    fontSize: FontSize.micro,
-    fontWeight: '700',
-    color: Colors.body,
-    letterSpacing: 0.8,
-    marginBottom: 8,
-  },
-  input: {
-    height: 52,
-    backgroundColor: Colors.white,
-    borderRadius: Radius.button,
-    paddingHorizontal: Spacing.card,
-    fontSize: FontSize.body,
-    color: Colors.body,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  footer: {
-    paddingHorizontal: Spacing.screen,
-    paddingTop: 8,
-    backgroundColor: Colors.white,
-  },
-  nextBtn: {
-    height: 56,
-    backgroundColor: Colors.orange,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  nextBtnDisabled: { backgroundColor: Colors.brand, opacity: 0.4 },
-  nextRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  nextText: { color: Colors.white, fontWeight: '700', fontSize: FontSize.body, letterSpacing: LetterSpacing.body, includeFontPadding: false },
-  nextArrow: { color: Colors.white, fontWeight: '700', fontSize: FontSize.body, letterSpacing: LetterSpacing.body, includeFontPadding: false, lineHeight: 20 },
-});

@@ -44,6 +44,9 @@ export type RootStackParamList = {
   Registration1: { mode?: 'login' };
   RegistrationVerification: { mode?: 'login' };
   Registration2: undefined;
+  Registration3: undefined;
+  Registration4: undefined;
+  Registration5: undefined;
   RegistrationFacts: undefined;
   RegistrationInterests: undefined;
   ShoutOut: undefined;
