@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, Image, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, Image, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFonts, AsapCondensed_700Bold } from '@expo-google-fonts/asap-condensed';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -13,7 +13,7 @@ export default function AboutScreen({ navigation }: Props) {
   if (!fontsLoaded) return null;
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
+    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: '#FFFFFF' }} behavior={Platform.OS === 'ios' ? 'padding' : 'padding'} keyboardVerticalOffset={0}>
       <View style={{ paddingTop: insets.top + 8, paddingHorizontal: 24 }}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
           <Text style={{ fontSize: 16, color: '#000000' }}>{'< Back'}</Text>
@@ -23,7 +23,7 @@ export default function AboutScreen({ navigation }: Props) {
         </View>
       </View>
 
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 20, paddingBottom: 16 }}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 24, paddingTop: 20, paddingBottom: 16 }}>
         <View style={{ alignItems: 'center', marginBottom: 12 }}>
           <Image source={require('../../assets/logo.png')} style={{ width: 120, height: 120 }} resizeMode="contain" />
         </View>
@@ -61,6 +61,6 @@ export default function AboutScreen({ navigation }: Props) {
           <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: '700' }}>Next →</Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }

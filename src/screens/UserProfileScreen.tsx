@@ -185,7 +185,7 @@ export default function UserProfileScreen({ route, navigation }: Props) {
             alignItems: 'center',
             justifyContent: 'center',
           }}
-          onPress={() => navigation.navigate('Main', { screen: 'Discover', params: { sayHiUser: user } } as any)}
+          onPress={() => navigation.navigate('Main' as any, { screen: 'Discover', params: { openOpeners: true, user: route.params?.user } } as any)}
           activeOpacity={0.85}
         >
           <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 16 }}>Say Hi!</Text>

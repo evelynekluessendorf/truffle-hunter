@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, Image } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, Image, Modal, FlatList } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types';
+import { useUser } from '../context/UserContext';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Registration3'>;
 
@@ -14,16 +15,33 @@ const YEARS = [
   { label: 'Senior', sub: '4th year' },
 ];
 
-export default function ProfileSetupScreen({ navigation }: Props) {
+const MAJORS = [
+  'Biology',
+  'Business Administration',
+  'Computer Science',
+  'Law',
+  'Physical Therapy',
+  'Political Science',
+  'Psychology',
+];
+
+export default function ProfileSetupScreen({ navigation, route }: Props) {
   const insets = useSafeAreaInsets();
-  const [photo, setPhoto] = useState<string | null>(null);
-  const [name, setName] = useState('');
-  const [year, setYear] = useState('');
-  const [major, setMajor] = useState('Physical therapy');
+  const { setRegistrationDraft, registrationDraft } = useUser();
+  const isEditing = route?.params?.isEditing ?? false;
+  const [photo, setPhoto] = useState<string | null>(registrationDraft.photoUri ?? null);
+  const [name, setName] = useState(registrationDraft.displayedName ?? '');
+  const [year, setYear] = useState(registrationDraft.year ?? '');
+  const [major, setMajor] = useState(registrationDraft.major ?? '');
+  const [majorModalVisible, setMajorModalVisible] = useState(false);
+  const canProceed = name.trim().length > 0 && year.length > 0 && major.length > 0;
 
   const pickPhoto = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, aspect: [1, 1], quality: 0.8 });
-    if (!result.canceled) setPhoto(result.assets[0].uri);
+    if (!result.canceled) {
+      setPhoto(result.assets[0].uri);
+      setRegistrationDraft({ photoUri: result.assets[0].uri });
+    }
   };
 
   return (
@@ -59,7 +77,7 @@ export default function ProfileSetupScreen({ navigation }: Props) {
           )}
         </TouchableOpacity>
 
-        <Text style={{ fontSize: 14, fontWeight: '700', color: '#000000', marginBottom: 8 }}>Displayed Name</Text>
+        <Text style={{ fontSize: 14, fontWeight: '700', color: '#000000', marginBottom: 8 }}>Displayed Name*</Text>
         <TextInput
           style={{ height: 52, borderWidth: 1, borderColor: '#CCCCCC', borderRadius: 10, paddingHorizontal: 12, fontSize: 15, color: '#000000', marginBottom: 24 }}
           placeholder="Maya"
@@ -68,7 +86,7 @@ export default function ProfileSetupScreen({ navigation }: Props) {
           onChangeText={setName}
         />
 
-        <Text style={{ fontSize: 14, fontWeight: '700', color: '#000000', marginBottom: 12 }}>Year</Text>
+        <Text style={{ fontSize: 14, fontWeight: '700', color: '#000000', marginBottom: 12 }}>Year*</Text>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 24 }}>
           {YEARS.map(y => (
             <TouchableOpacity
@@ -87,9 +105,13 @@ export default function ProfileSetupScreen({ navigation }: Props) {
           ))}
         </View>
 
-        <Text style={{ fontSize: 14, fontWeight: '700', color: '#000000', marginBottom: 8 }}>Major</Text>
-        <TouchableOpacity style={{ height: 52, borderWidth: 1, borderColor: '#DDDDDD', borderRadius: 10, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
-          <Text style={{ fontSize: 15, color: '#111111' }}>{major}</Text>
+        <Text style={{ fontSize: 14, fontWeight: '700', color: '#000000', marginBottom: 8 }}>Major*</Text>
+        <TouchableOpacity
+          onPress={() => setMajorModalVisible(true)}
+          style={{ height: 52, borderWidth: 1, borderColor: '#DDDDDD', borderRadius: 10, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+          <Text style={{ fontSize: 15, color: major ? '#111111' : '#AAAAAA' }}>
+            {major || 'Please select'}
+          </Text>
           <Text style={{ fontSize: 14, color: '#888888' }}>▾</Text>
         </TouchableOpacity>
 
@@ -98,11 +120,48 @@ export default function ProfileSetupScreen({ navigation }: Props) {
 
       <View style={{ paddingHorizontal: 24, paddingTop: 8, paddingBottom: insets.bottom + 8, backgroundColor: '#FFFFFF' }}>
         <TouchableOpacity
-          onPress={() => navigation.navigate('Registration4')}
-          style={{ height: 56, borderRadius: 12, backgroundColor: '#000FE1', alignItems: 'center', justifyContent: 'center' }}>
-          <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: '700' }}>Next →</Text>
+          onPress={() => {
+            if (!canProceed) return;
+            setRegistrationDraft({ displayedName: name, year, major });
+            if (isEditing) { navigation.goBack(); } else { navigation.navigate('Registration4'); }
+          }}
+          activeOpacity={canProceed ? 0.85 : 1}
+          style={{ height: 56, borderRadius: 12, backgroundColor: '#000FE1', opacity: canProceed ? 1 : 0.4, alignItems: 'center', justifyContent: 'center' }}>
+          <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: '700' }}>{isEditing ? 'Save' : 'Next →'}</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Major picker modal */}
+      <Modal visible={majorModalVisible} transparent animationType="slide">
+        <TouchableOpacity
+          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' }}
+          activeOpacity={1}
+          onPress={() => setMajorModalVisible(false)}>
+          <View style={{ backgroundColor: '#FFFFFF', borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingTop: 12, paddingBottom: insets.bottom + 16 }}>
+            <View style={{ width: 40, height: 4, backgroundColor: '#E0E0E0', borderRadius: 2, alignSelf: 'center', marginBottom: 16 }} />
+            <Text style={{ fontSize: 17, fontWeight: '700', color: '#000000', paddingHorizontal: 24, marginBottom: 8 }}>Select your major</Text>
+            <FlatList
+              data={MAJORS}
+              keyExtractor={item => item}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  onPress={() => { setMajor(item); setMajorModalVisible(false); }}
+                  style={{
+                    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+                    paddingVertical: 16, paddingHorizontal: 24,
+                    backgroundColor: major === item ? '#EEF0FB' : '#FFFFFF',
+                  }}>
+                  <Text style={{ fontSize: 16, color: major === item ? '#000FE1' : '#111111', fontWeight: major === item ? '600' : '400' }}>
+                    {item}
+                  </Text>
+                  {major === item && <Text style={{ fontSize: 16, color: '#000FE1' }}>✓</Text>}
+                </TouchableOpacity>
+              )}
+              ItemSeparatorComponent={() => <View style={{ height: 1, backgroundColor: '#F0F0F0', marginHorizontal: 24 }} />}
+            />
+          </View>
+        </TouchableOpacity>
+      </Modal>
 
     </KeyboardAvoidingView>
   );

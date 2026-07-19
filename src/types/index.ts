@@ -34,21 +34,21 @@ export interface Shoutout {
 
 export type RootTabParamList = {
   Home: undefined;
-  Discover: { sendoffUser?: User; sayHiUser?: User } | undefined;
+  Discover: { openOpeners?: boolean; user?: User; sendoffUser?: User; sayHiUser?: User } | undefined;
   Profile: undefined;
 };
 
 export type RootStackParamList = {
   Welcome: undefined;
   About: undefined;
-  Registration1: { mode?: 'login' };
+  Registration1: { mode?: 'login' | 'register' };
   RegistrationVerification: { mode?: 'login' };
-  Registration2: undefined;
-  Registration3: undefined;
+  Registration2: { mode?: 'login' } | undefined;
+  Registration3: { isEditing?: boolean } | undefined;
   Registration4: undefined;
   Registration5: undefined;
-  RegistrationFacts: undefined;
-  RegistrationInterests: undefined;
+  RegistrationFacts: { isEditing?: boolean } | undefined;
+  RegistrationInterests: { isEditing?: boolean } | undefined;
   ShoutOut: undefined;
   Opener: { user: User };
   Login: undefined;

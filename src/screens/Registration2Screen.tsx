@@ -1,15 +1,43 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, Modal, Clipboard, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Registration2'>;
 
-export default function Registration2Screen({ navigation }: Props) {
+function generateCode(): string {
+  return String(Math.floor(100000 + Math.random() * 900000));
+}
+
+export default function Registration2Screen({ navigation, route }: Props) {
   const insets = useSafeAreaInsets();
+  const isLogin = route.params?.mode === 'login';
   const [phone, setPhone] = useState('');
   const [code, setCode] = useState('');
+  const [generatedCode, setGeneratedCode] = useState('');
+  const [modalVisible, setModalVisible] = useState(false);
+  const canProceed = code.trim().length > 0;
+
+  const handleSendCode = () => {
+    if (!phone.trim()) {
+      Alert.alert('Enter your phone number first.');
+      return;
+    }
+    const newCode = generateCode();
+    setGeneratedCode(newCode);
+    setModalVisible(true);
+  };
+
+  const handleCopyCode = () => {
+    Clipboard.setString(generatedCode);
+    setCode(generatedCode);
+    setModalVisible(false);
+  };
+
+  const handleOk = () => {
+    setModalVisible(false);
+  };
 
   return (
     <KeyboardAvoidingView
@@ -47,7 +75,7 @@ export default function Registration2Screen({ navigation }: Props) {
             onChangeText={setPhone}
           />
           <TouchableOpacity
-            onPress={() => {/* existing send code logic */}}
+            onPress={handleSendCode}
             style={{ flex: 1, height: 52, borderWidth: 1.5, borderColor: '#000FE1', borderRadius: 10, alignItems: 'center', justifyContent: 'center' }}>
             <Text style={{ color: '#000FE1', fontSize: 14, fontWeight: '600' }}>Send code</Text>
           </TouchableOpacity>
@@ -70,11 +98,33 @@ export default function Registration2Screen({ navigation }: Props) {
 
       <View style={{ paddingHorizontal: 24, paddingTop: 8, paddingBottom: insets.bottom + 8, backgroundColor: '#FFFFFF' }}>
         <TouchableOpacity
-          onPress={() => navigation.navigate('Registration3')}
-          style={{ height: 56, borderRadius: 12, backgroundColor: '#000FE1', alignItems: 'center', justifyContent: 'center' }}>
+          onPress={() => canProceed && navigation.navigate(isLogin ? 'Main' : 'Registration3')}
+          activeOpacity={canProceed ? 0.85 : 1}
+          style={{ height: 56, borderRadius: 12, backgroundColor: '#000FE1', opacity: canProceed ? 1 : 0.4, alignItems: 'center', justifyContent: 'center' }}>
           <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: '700' }}>Next →</Text>
         </TouchableOpacity>
       </View>
+
+      {/* SMS-style code popup */}
+      <Modal transparent animationType="fade" visible={modalVisible} onRequestClose={handleOk}>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.45)' }}>
+          <View style={{ width: 300, backgroundColor: '#3A3A3A', borderRadius: 12, padding: 20 }}>
+            <Text style={{ fontSize: 16, fontWeight: '700', color: '#FFFFFF', marginBottom: 6 }}>📱 New Message</Text>
+            <Text style={{ fontSize: 14, color: '#CCCCCC', marginBottom: 4 }}>From: MEEX</Text>
+            <Text style={{ fontSize: 14, color: '#FFFFFF', marginBottom: 4 }}>Your MEEX verification code is:</Text>
+            <Text style={{ fontSize: 28, fontWeight: '700', color: '#FFFFFF', marginBottom: 8, letterSpacing: 4 }}>{generatedCode}</Text>
+            <Text style={{ fontSize: 13, color: '#CCCCCC', marginBottom: 20 }}>Do not share this code with anyone.</Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 24 }}>
+              <TouchableOpacity onPress={handleCopyCode}>
+                <Text style={{ fontSize: 14, fontWeight: '700', color: '#4FC3F7' }}>COPY CODE</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={handleOk}>
+                <Text style={{ fontSize: 14, fontWeight: '700', color: '#4FC3F7' }}>OK</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
     </KeyboardAvoidingView>
   );

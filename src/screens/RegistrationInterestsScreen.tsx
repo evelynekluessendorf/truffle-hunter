@@ -20,8 +20,9 @@ const INTERESTS = [
   { label: 'Wellness',    emoji: '🧘' }, { label: 'Writing',     emoji: '📝' },
 ];
 
-export default function RegistrationInterestsScreen({ navigation }: Props) {
+export default function RegistrationInterestsScreen({ navigation, route }: Props) {
   const { registrationDraft, setRegistrationDraft } = useUser();
+  const isEditing = route?.params?.isEditing ?? false;
   const insets = useSafeAreaInsets();
   const selected = new Set(registrationDraft.selectedInterests);
 
@@ -109,7 +110,7 @@ export default function RegistrationInterestsScreen({ navigation }: Props) {
         backgroundColor: '#FFFFFF',
       }}>
         <TouchableOpacity
-          onPress={() => canProceed && navigation.replace('Main')}
+          onPress={() => { if (!canProceed) return; isEditing ? navigation.goBack() : navigation.replace('Main'); }}
           activeOpacity={canProceed ? 0.85 : 1}
           style={{
             height: 56,
@@ -120,7 +121,7 @@ export default function RegistrationInterestsScreen({ navigation }: Props) {
             justifyContent: 'center',
           }}
         >
-          <Text style={{ color: '#FFFFFF', fontWeight: '600', fontSize: 16 }}>Next →</Text>
+          <Text style={{ color: '#FFFFFF', fontWeight: '600', fontSize: 16 }}>{isEditing ? 'Save' : 'Next →'}</Text>
         </TouchableOpacity>
       </View>
 

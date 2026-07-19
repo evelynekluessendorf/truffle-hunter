@@ -17,8 +17,9 @@ const ORDINALS = ['1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th', '9th',
 
 type Props = NativeStackScreenProps<RootStackParamList, 'RegistrationFacts'>;
 
-export default function RegistrationFactsScreen({ navigation }: Props) {
+export default function RegistrationFactsScreen({ navigation, route }: Props) {
   const { setSocialLinks, registrationDraft, setRegistrationDraft } = useUser();
+  const isEditing = route?.params?.isEditing ?? false;
   const insets = useSafeAreaInsets();
   const facts = registrationDraft.facts;
   const setFacts = (updater: string[] | ((prev: string[]) => string[])) =>
@@ -210,7 +211,7 @@ export default function RegistrationFactsScreen({ navigation }: Props) {
               tiktok: social.tiktok.trim().replace(/^@/, '') || undefined,
               facebook: social.facebook.trim().replace(/^@/, '') || undefined,
             });
-            navigation.navigate('RegistrationInterests');
+            if (isEditing) { navigation.goBack(); } else { navigation.navigate('RegistrationInterests'); }
           }}
           activeOpacity={canProceed ? 0.85 : 1}
           style={{
@@ -222,7 +223,7 @@ export default function RegistrationFactsScreen({ navigation }: Props) {
             justifyContent: 'center',
           }}
         >
-          <Text style={{ color: '#FFFFFF', fontWeight: '600', fontSize: 16 }}>Next →</Text>
+          <Text style={{ color: '#FFFFFF', fontWeight: '600', fontSize: 16 }}>{isEditing ? 'Save' : 'Next →'}</Text>
         </TouchableOpacity>
       </View>
 

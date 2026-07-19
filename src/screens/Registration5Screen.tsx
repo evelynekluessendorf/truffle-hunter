@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollVie
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types';
+import { useUser } from '../context/UserContext';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Registration5'>;
 
@@ -31,7 +32,9 @@ const INTERESTS = [
 
 export default function InterestsScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
+  const { setRegistrationDraft } = useUser();
   const [selected, setSelected] = useState<string[]>([]);
+  const canProceed = selected.length >= 3;
 
   const toggle = (label: string) => {
     setSelected(prev =>
@@ -95,8 +98,13 @@ export default function InterestsScreen({ navigation }: Props) {
 
       <View style={{ paddingHorizontal: 24, paddingTop: 8, paddingBottom: insets.bottom + 8, backgroundColor: '#FFFFFF' }}>
         <TouchableOpacity
-          onPress={() => navigation.navigate('Main')}
-          style={{ height: 56, borderRadius: 12, backgroundColor: '#000FE1', alignItems: 'center', justifyContent: 'center' }}>
+          onPress={() => {
+            if (!canProceed) return;
+            setRegistrationDraft({ selectedInterests: selected });
+            navigation.navigate('Main');
+          }}
+          activeOpacity={canProceed ? 0.85 : 1}
+          style={{ height: 56, borderRadius: 12, backgroundColor: '#000FE1', opacity: canProceed ? 1 : 0.4, alignItems: 'center', justifyContent: 'center' }}>
           <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: '700' }}>Next →</Text>
         </TouchableOpacity>
       </View>

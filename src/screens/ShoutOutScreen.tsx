@@ -61,22 +61,21 @@ export default function ShoutoutScreen({ navigation }: any) {
         </View>
         <Text style={{ fontSize: 13, color: '#8888CC', marginBottom: 20 }}>~ 47 people currently available nearby</Text>
 
-        {!hasText && (
-          <>
-            <Text style={{ fontSize: 12, fontWeight: '700', color: '#000000', letterSpacing: 1, marginBottom: 12 }}>NEED INSPIRATION?</Text>
-            {INSPIRATIONS.map((tip, i) => (
-              <TouchableOpacity
-                key={i}
-                onPress={() => setText(tip)}
-                style={{ backgroundColor: '#F0F1FA', borderRadius: 10, padding: 14, marginBottom: 10 }}>
-                <Text style={{ fontSize: 15, color: '#111111' }}>{tip}</Text>
-              </TouchableOpacity>
-            ))}
-            <Text style={{ fontSize: 12, color: '#8888CC', textAlign: 'center', marginTop: 16 }}>
-              Expires automatically in 2 hours.{'  '}You can also withdraw manually.
-            </Text>
-          </>
-        )}
+        <Text style={{ fontSize: 12, fontWeight: '700', color: '#000000', letterSpacing: 1, marginBottom: 12 }}>NEED INSPIRATION?</Text>
+        {INSPIRATIONS.map((tip, i) => {
+          const selected = text === tip;
+          return (
+            <TouchableOpacity
+              key={i}
+              onPress={() => setText(tip)}
+              style={{ backgroundColor: selected ? '#EEF0FB' : '#F0F1FA', borderRadius: 10, padding: 14, marginBottom: 10, borderWidth: selected ? 1.5 : 0, borderColor: '#000FE1' }}>
+              <Text style={{ fontSize: 15, color: selected ? '#000FE1' : '#111111', fontWeight: selected ? '600' : '400' }}>{tip}</Text>
+            </TouchableOpacity>
+          );
+        })}
+        <Text style={{ fontSize: 12, color: '#8888CC', textAlign: 'center', marginTop: 8, marginBottom: 8 }}>
+          Expires automatically in 2 hours.{'  '}You can also withdraw manually.
+        </Text>
 
         <View style={{ flex: 1 }} />
       </ScrollView>

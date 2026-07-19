@@ -1,6 +1,5 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, Image } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { User } from '../types';
 
 interface Props {
@@ -65,7 +64,7 @@ export default function MapProfileCard({ user, onViewProfile, onDismiss, onNavig
                     paddingHorizontal: 10, paddingVertical: 4,
                   }}
                 >
-                  <Ionicons name="navigate" size={11} color="#FFFFFF" />
+                  <Text style={{ fontSize: 11, color: '#FFFFFF' }}>✈</Text>
                   <Text style={{ fontSize: 12, fontWeight: '600', color: '#FFFFFF' }}>Directions</Text>
                 </TouchableOpacity>
               )}

@@ -1,14 +1,20 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, Image } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types';
+import { useUser } from '../context/UserContext';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Registration4'>;
 
 export default function IceBreakersScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
+  const { setRegistrationDraft } = useUser();
   const [facts, setFacts] = useState(['', '', '']);
+  const canProceed = facts[0].trim().length > 0 && facts[1].trim().length > 0 && facts[2].trim().length > 0;
+  const [instagram, setInstagram] = useState('');
+  const [tiktok, setTiktok] = useState('');
+  const [facebook, setFacebook] = useState('');
 
   const addFact = () => setFacts([...facts, '']);
   const updateFact = (text: string, index: number) => {
@@ -56,7 +62,7 @@ export default function IceBreakersScreen({ navigation }: Props) {
             <View style={{ backgroundColor: '#DDE3FF', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 100, marginRight: 10, marginTop: 2 }}>
               <Text style={{ fontSize: 12, fontWeight: '700', color: '#000FE1' }}>Strong</Text>
             </View>
-            <Text style={{ flex: 1, fontSize: 14, color: '#333333', fontStyle: 'italic' }}>I once got stuck in an elevator with a senator/ I trained in circus acrobatics for 3 years</Text>
+            <Text style={{ flex: 1, fontSize: 14, color: '#333333', fontStyle: 'italic' }}>I trained in circus acrobatics for 3 years</Text>
           </View>
         </View>
 
@@ -85,13 +91,72 @@ export default function IceBreakersScreen({ navigation }: Props) {
           </TouchableOpacity>
         )}
 
+        {/* Social Media */}
+        <View style={{ marginTop: -8, marginBottom: 24 }}>
+          <Text style={{ fontSize: 17, fontWeight: '700', color: '#000000', marginBottom: 4 }}>Social Media</Text>
+          <Text style={{ fontSize: 13, color: '#888888', marginBottom: 16 }}>Optional — share your handles so people can connect with you</Text>
+
+          {/* Instagram */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#CCCCCC', borderRadius: 10, height: 52, paddingHorizontal: 12, marginBottom: 12 }}>
+            <Text style={{ fontSize: 16, marginRight: 8 }}>📸</Text>
+            <Text style={{ fontSize: 15, color: '#AAAAAA', marginRight: 4 }}>@</Text>
+            <TextInput
+              style={{ flex: 1, fontSize: 15, color: '#000000' }}
+              placeholder="instagram"
+              placeholderTextColor="#AAAAAA"
+              autoCapitalize="none"
+              autoCorrect={false}
+              value={instagram}
+              onChangeText={setInstagram}
+            />
+          </View>
+
+          {/* TikTok */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#CCCCCC', borderRadius: 10, height: 52, paddingHorizontal: 12, marginBottom: 12 }}>
+            <Text style={{ fontSize: 16, marginRight: 8 }}>🎵</Text>
+            <Text style={{ fontSize: 15, color: '#AAAAAA', marginRight: 4 }}>@</Text>
+            <TextInput
+              style={{ flex: 1, fontSize: 15, color: '#000000' }}
+              placeholder="tiktok"
+              placeholderTextColor="#AAAAAA"
+              autoCapitalize="none"
+              autoCorrect={false}
+              value={tiktok}
+              onChangeText={setTiktok}
+            />
+          </View>
+
+          {/* Facebook */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#CCCCCC', borderRadius: 10, height: 52, paddingHorizontal: 12 }}>
+            <Text style={{ fontSize: 16, marginRight: 8 }}>👤</Text>
+            <Text style={{ fontSize: 15, color: '#AAAAAA', marginRight: 4 }}>@</Text>
+            <TextInput
+              style={{ flex: 1, fontSize: 15, color: '#000000' }}
+              placeholder="facebook"
+              placeholderTextColor="#AAAAAA"
+              autoCapitalize="none"
+              autoCorrect={false}
+              value={facebook}
+              onChangeText={setFacebook}
+            />
+          </View>
+        </View>
+
         <View style={{ flex: 1 }} />
       </ScrollView>
 
       <View style={{ paddingHorizontal: 24, paddingTop: 8, paddingBottom: insets.bottom + 8, backgroundColor: '#FFFFFF' }}>
         <TouchableOpacity
-          onPress={() => navigation.navigate('Registration5')}
-          style={{ height: 56, borderRadius: 12, backgroundColor: '#000FE1', alignItems: 'center', justifyContent: 'center' }}>
+          onPress={() => {
+            if (!canProceed) return;
+            setRegistrationDraft({
+              facts: facts.filter(f => f.trim().length > 0),
+              social: { instagram: instagram.trim(), tiktok: tiktok.trim(), facebook: facebook.trim() },
+            });
+            navigation.navigate('Registration5');
+          }}
+          activeOpacity={canProceed ? 0.85 : 1}
+          style={{ height: 56, borderRadius: 12, backgroundColor: '#000FE1', opacity: canProceed ? 1 : 0.4, alignItems: 'center', justifyContent: 'center' }}>
           <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: '700' }}>Next →</Text>
         </TouchableOpacity>
       </View>

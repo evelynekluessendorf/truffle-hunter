@@ -6,7 +6,7 @@ export const currentUser: User = {
   name: 'Maya',
   year: 'Senior',
   major: 'Psychology',
-  photoUri: 'https://randomuser.me/api/portraits/women/65.jpg',
+  photoUri: 'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=150&q=80',
   iceBreakers: [
     'I was on a reality TV show in high school — I got eliminated episode 2 but the drama was worth it',
     'I speak conversational Mandarin but only about food. Ordering dim sum in Beijing was my proudest moment 🥟',
@@ -26,7 +26,7 @@ export const nearbyUsers: User[] = [
     name: 'James',
     year: 'Sophomore',
     major: 'Computer Science',
-    photoUri: 'https://randomuser.me/api/portraits/men/32.jpg',
+    photoUri: 'https://images.unsplash.com/photo-1463453091185-61582044d556?w=150&q=80',
     iceBreakers: [
       "I can solve a Rubik's cube in under 30 seconds — blindfolded is next on the list",
       'I collect rubber ducks and currently have 47. Each one has a name and a backstory I can recite from memory',
@@ -51,7 +51,7 @@ export const nearbyUsers: User[] = [
     name: 'Amy',
     year: 'Junior',
     major: 'Physical Therapy',
-    photoUri: 'https://randomuser.me/api/portraits/women/22.jpg',
+    photoUri: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&q=80',
     iceBreakers: [
       'I ran a half marathon last weekend with absolutely zero training. My legs hated me for a week but I finished',
       'I have 3 rescue cats all named after pasta shapes — Rigatoni, Fusilli, and Orzo. Orzo bites strangers',
@@ -76,7 +76,7 @@ export const nearbyUsers: User[] = [
     name: 'Leo',
     year: 'Senior',
     major: 'Music & Business',
-    photoUri: 'https://randomuser.me/api/portraits/men/45.jpg',
+    photoUri: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&q=80',
     iceBreakers: [
       'I played bass at a sold-out show of 2,000 people when I was 17. My parents thought I was at the library',
       'I turned down a small record deal to finish my degree. Some days I think that was the right call',
@@ -101,7 +101,7 @@ export const nearbyUsers: User[] = [
     name: 'Sofia',
     year: 'Freshman',
     major: 'Biology',
-    photoUri: 'https://randomuser.me/api/portraits/women/68.jpg',
+    photoUri: 'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=150&q=80',
     iceBreakers: [
       'I grew up in 5 different countries across 3 continents and have never lived anywhere for more than 3 years',
       "I speak 4 languages fluently but I genuinely don't know which one I dream in. It changes",
@@ -126,7 +126,7 @@ export const nearbyUsers: User[] = [
     name: 'Priya',
     year: 'Senior',
     major: 'Law',
-    photoUri: 'https://randomuser.me/api/portraits/women/74.jpg',
+    photoUri: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&q=80',
     iceBreakers: [
       'I won a national debate championship at 16 arguing a position I personally disagreed with. I still won',
       'I interned at a Supreme Court justice office last summer and was not allowed to talk about a single thing I saw',
@@ -151,7 +151,7 @@ export const nearbyUsers: User[] = [
     name: 'Noah',
     year: 'Sophomore',
     major: 'Film',
-    photoUri: 'https://randomuser.me/api/portraits/men/18.jpg',
+    photoUri: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150&q=80',
     iceBreakers: [
       "I've watched every Oscar Best Picture winner at least twice and I have very strong opinions about which ones were wrong",
       'I made a short film freshman year that got 2M views on YouTube. I deleted it. I do not want to talk about it',
@@ -176,7 +176,7 @@ export const nearbyUsers: User[] = [
     name: 'Zoe',
     year: 'Junior',
     major: 'Architecture',
-    photoUri: 'https://randomuser.me/api/portraits/women/31.jpg',
+    photoUri: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&q=80',
     iceBreakers: [
       "I designed a tiny house at 15 and convinced my parents to let me build it in the backyard. We still use it as a guest room",
       'I have a rule that I sketch every interesting building I walk past. My notebooks are unreadable to anyone else but make perfect sense to me',
@@ -200,7 +200,7 @@ export const nearbyUsers: User[] = [
     name: 'Kai',
     year: 'Freshman',
     major: 'Neuroscience',
-    photoUri: 'https://randomuser.me/api/portraits/men/36.jpg',
+    photoUri: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&q=80',
     iceBreakers: [
       "I memorised the periodic table in two days on a dare and now I can't forget it even though I desperately want to",
       'I kept a dream journal for three years and statistically I dream about escalators more than any other location. I have no explanation',
@@ -224,7 +224,7 @@ export const nearbyUsers: User[] = [
     name: 'Elena',
     year: 'Senior',
     major: 'Economics',
-    photoUri: 'https://randomuser.me/api/portraits/women/55.jpg',
+    photoUri: 'https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?w=150&q=80',
     iceBreakers: [
       'I predicted the outcome of three local elections correctly using only publicly available data and a spreadsheet I built myself',
       "I spent a summer working at a hedge fund and realised on day three that I didn't want to do it. I stayed for the full internship anyway",
@@ -248,7 +248,7 @@ export const nearbyUsers: User[] = [
     name: 'Ravi',
     year: 'Sophomore',
     major: 'Computer Science',
-    photoUri: 'https://randomuser.me/api/portraits/men/41.jpg',
+    photoUri: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&q=80',
     iceBreakers: [
       'I built a Chrome extension that blocks every website except the one I need for exactly 25 minutes. It also locks me out of the settings',
       "I have never lost a game of chess against a human but I once resigned against a computer after move 12 because I respected its play too much",
@@ -272,7 +272,7 @@ export const nearbyUsers: User[] = [
     name: 'Chloe',
     year: 'Junior',
     major: 'Journalism',
-    photoUri: 'https://randomuser.me/api/portraits/women/63.jpg',
+    photoUri: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&q=80',
     iceBreakers: [
       "I interviewed a sitting senator for my college paper and he thought I was a professional journalist for the first 10 minutes. I didn't correct him",
       'I have a notebook for every year since I was nine. I have never re-read any of them. I am terrified to',

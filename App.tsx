@@ -13,6 +13,9 @@ import AboutScreen from './src/screens/AboutScreen';
 import Registration1Screen from './src/screens/Registration1Screen';
 import RegistrationVerificationScreen from './src/screens/RegistrationVerificationScreen';
 import Registration2Screen from './src/screens/Registration2Screen';
+import Registration3Screen from './src/screens/Registration3Screen';
+import Registration4Screen from './src/screens/Registration4Screen';
+import Registration5Screen from './src/screens/Registration5Screen';
 import RegistrationFactsScreen from './src/screens/RegistrationFactsScreen';
 import RegistrationInterestsScreen from './src/screens/RegistrationInterestsScreen';
 import ShoutOutScreen from './src/screens/ShoutOutScreen';
@@ -37,6 +40,9 @@ export default function App() {
             <Stack.Screen name="Registration1" component={Registration1Screen} />
             <Stack.Screen name="RegistrationVerification" component={RegistrationVerificationScreen} />
             <Stack.Screen name="Registration2" component={Registration2Screen} />
+            <Stack.Screen name="Registration3" component={Registration3Screen} />
+            <Stack.Screen name="Registration4" component={Registration4Screen} />
+            <Stack.Screen name="Registration5" component={Registration5Screen} />
             <Stack.Screen name="RegistrationFacts" component={RegistrationFactsScreen} />
             <Stack.Screen name="RegistrationInterests" component={RegistrationInterestsScreen} />
             <Stack.Screen name="ShoutOut" component={ShoutOutScreen} />

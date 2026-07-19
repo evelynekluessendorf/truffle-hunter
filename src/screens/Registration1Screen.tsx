@@ -9,6 +9,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Registration1'>;
 export default function Registration1Screen({ navigation, route }: Props) {
   const insets = useSafeAreaInsets();
   const [username, setUsername] = useState('');
+  const canProceed = username.trim().length > 0;
 
   return (
     <KeyboardAvoidingView
@@ -38,7 +39,10 @@ export default function Registration1Screen({ navigation, route }: Props) {
         <View style={{ flex: 1 }} />
       </ScrollView>
       <View style={{ paddingHorizontal: 24, paddingTop: 8, paddingBottom: insets.bottom + 8, backgroundColor: '#FFFFFF' }}>
-        <TouchableOpacity onPress={() => navigation.navigate('Registration2')} style={{ height: 56, borderRadius: 12, backgroundColor: '#000FE1', alignItems: 'center', justifyContent: 'center' }}>
+        <TouchableOpacity
+          onPress={() => canProceed && navigation.navigate('Registration2')}
+          activeOpacity={canProceed ? 0.85 : 1}
+          style={{ height: 56, borderRadius: 12, backgroundColor: '#000FE1', opacity: canProceed ? 1 : 0.4, alignItems: 'center', justifyContent: 'center' }}>
           <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: '700' }}>Next →</Text>
         </TouchableOpacity>
       </View>
