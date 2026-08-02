@@ -17,10 +17,19 @@ interface RegistrationDraft {
   selectedInterests: string[];
 }
 
-interface ActiveShout {
+export type ShoutRadius = '50m' | '200m' | '500m' | 'campus';
+
+export interface ActiveShout {
   text: string;
-  people: number;
+  radius: ShoutRadius;
+  timestamp: Date;
+  /** Milliseconds remaining when the shout was created. */
+  expiresIn: number;
+  seenBy: number;
 }
+
+/** Shouts self-expire after two hours. */
+export const SHOUT_TTL_MS = 2 * 60 * 60 * 1000;
 
 interface UserContextType {
   profile: UserProfile;

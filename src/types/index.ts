@@ -1,3 +1,5 @@
+import type { NavigatorScreenParams } from '@react-navigation/native';
+
 export interface SocialLinks {
   instagram?: string;
   tiktok?: string;
@@ -41,6 +43,8 @@ export type RootTabParamList = {
 export type RootStackParamList = {
   Welcome: undefined;
   About: undefined;
+  Settings: undefined;
+  RegistrationConfirmation: undefined;
   Registration1: { mode?: 'login' | 'register' };
   RegistrationVerification: { mode?: 'login' };
   Registration2: { mode?: 'login' } | undefined;
@@ -52,7 +56,8 @@ export type RootStackParamList = {
   ShoutOut: undefined;
   Opener: { user: User };
   Login: undefined;
-  Main: undefined;
+  // Nested so callers can target a specific tab, e.g. navigate('Main', { screen: 'Home' }).
+  Main: NavigatorScreenParams<RootTabParamList> | undefined;
   UserProfile: { user: User };
   MeetingSheet: { user: User };
 };

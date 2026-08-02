@@ -1,32 +1,79 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, Modal, Clipboard, Alert } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  TextInput,
+  ScrollView,
+  StyleSheet,
+  Keyboard,
+  Platform,
+  Modal,
+  Clipboard,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../types';
-
-type Props = NativeStackScreenProps<RootStackParamList, 'Registration2'>;
+import BackButton from '../components/BackButton';
 
 function generateCode(): string {
   return String(Math.floor(100000 + Math.random() * 900000));
 }
 
-export default function Registration2Screen({ navigation, route }: Props) {
-  const insets = useSafeAreaInsets();
-  const isLogin = route.params?.mode === 'login';
+// Truffle Hunter colors
+const COLORS = {
+  piggyPink: '#FFB0C7',
+  piggyPinkBright: '#FF7D9E',
+  keylinePurple: '#201642',
+  cream: '#FAF9F6',
+  accentCoral: '#FF6B35',
+  accentCoralLight: '#FFF0EB',
+  sunnyYellow: '#FFF1C6',
+  sunnyYellowBright: '#E8A33D',
+};
+
+interface Registration2ScreenProps {
+  onNext?: (verificationData: { phone: string; code: string }) => void;
+  onBack?: () => void;
+  /** Hidden on the login path, where this is a one-step flow rather than step 2 of registration. */
+  showProgress?: boolean;
+}
+
+export const Registration2Screen: React.FC<Registration2ScreenProps> = ({
+  onNext,
+  onBack,
+  showProgress = true,
+}) => {
   const [phone, setPhone] = useState('');
   const [code, setCode] = useState('');
+  const [codeSent, setCodeSent] = useState(false);
   const [generatedCode, setGeneratedCode] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
-  const canProceed = code.trim().length > 0;
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const insets = useSafeAreaInsets();
+
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const showSub = Keyboard.addListener(showEvent, (e) => {
+      setKeyboardHeight(e.endCoordinates.height);
+    });
+    const hideSub = Keyboard.addListener(hideEvent, () => {
+      setKeyboardHeight(0);
+    });
+
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   const handleSendCode = () => {
-    if (!phone.trim()) {
-      Alert.alert('Enter your phone number first.');
-      return;
+    if (phone.trim()) {
+      const newCode = generateCode();
+      setGeneratedCode(newCode);
+      setCodeSent(true);
+      setModalVisible(true);
     }
-    const newCode = generateCode();
-    setGeneratedCode(newCode);
-    setModalVisible(true);
   };
 
   const handleCopyCode = () => {
@@ -39,93 +86,271 @@ export default function Registration2Screen({ navigation, route }: Props) {
     setModalVisible(false);
   };
 
-  return (
-    <KeyboardAvoidingView
-      style={{ flex: 1, backgroundColor: '#FFFFFF' }}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'padding'}
-      keyboardVerticalOffset={0}>
+  const handleNext = () => {
+    if (phone.trim() && code.trim().length === 6) {
+      onNext?.({ phone, code });
+    }
+  };
 
-      <View style={{ paddingTop: insets.top + 8, paddingHorizontal: 24 }}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginBottom: 12 }}>
-          <Text style={{ fontSize: 16, color: '#000000' }}>{'< Back'}</Text>
-        </TouchableOpacity>
-        <View style={{ height: 3, backgroundColor: '#E0E0E0', borderRadius: 2 }}>
-          <View style={{ width: '45%', height: 3, backgroundColor: '#000FE1', borderRadius: 2 }} />
-        </View>
+  const isPhoneValid = phone.trim().length > 0;
+  const isCodeValid = code.trim().length === 6;
+  const canProceed = isPhoneValid && isCodeValid;
+
+  return (
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      {/* Header */}
+      <View style={styles.header}>
+        <BackButton onPress={onBack} style={styles.backButton} />
       </View>
 
-      <ScrollView
-        style={{ flex: 1 }}
-        contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 24, paddingTop: 24 }}
-        keyboardShouldPersistTaps="handled">
+      {/* Progress Bar — registration only; login is a single step */}
+      {showProgress && (
+        <View style={styles.progressBarContainer}>
+          <View style={[styles.progressBar, { width: '40%' }]} />
+        </View>
+      )}
 
-        <Text style={{ fontSize: 28, fontWeight: '800', color: '#000000', marginBottom: 8 }}>Account verification</Text>
-        <Text style={{ fontSize: 15, color: '#444444', lineHeight: 22, marginBottom: 24 }}>
+      {/* Content */}
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Title */}
+        <Text style={styles.title}>Account verification</Text>
+
+        {/* Subtitle */}
+        <Text style={styles.subtitle}>
           We'll send you 6-digit code to your phone to confirm it's really you
         </Text>
 
-        <Text style={{ fontSize: 14, fontWeight: '700', color: '#000000', marginBottom: 8 }}>Your Phone Number*:</Text>
-        <View style={{ flexDirection: 'row', gap: 8, marginBottom: 24 }}>
+        {/* Phone Number Section */}
+        <Text style={styles.label}>Your Phone Number*:</Text>
+        <View style={styles.phoneRow}>
           <TextInput
-            style={{ flex: 1.8, height: 52, borderWidth: 1, borderColor: '#CCCCCC', borderRadius: 10, paddingHorizontal: 12, fontSize: 15, color: '#000000' }}
-            placeholder="+1 (555) 000-000"
-            placeholderTextColor="#AAAAAA"
-            keyboardType="phone-pad"
+            style={[styles.input, styles.phoneInput]}
+            placeholder="+1(555) 000-000"
+            placeholderTextColor="#999"
             value={phone}
             onChangeText={setPhone}
+            keyboardType="phone-pad"
           />
           <TouchableOpacity
+            style={[styles.sendCodeButton, !isPhoneValid && styles.sendCodeButtonDisabled]}
             onPress={handleSendCode}
-            style={{ flex: 1, height: 52, borderWidth: 1.5, borderColor: '#000FE1', borderRadius: 10, alignItems: 'center', justifyContent: 'center' }}>
-            <Text style={{ color: '#000FE1', fontSize: 14, fontWeight: '600' }}>Send code</Text>
+            disabled={!isPhoneValid}
+          >
+            <Text style={styles.sendCodeText}>Send code</Text>
           </TouchableOpacity>
         </View>
 
-        <Text style={{ fontSize: 14, fontWeight: '700', color: '#000000', marginBottom: 8 }}>Your Verification Code*:</Text>
+        {/* Verification Code Section */}
+        <Text style={styles.label}>Your Verification Code*:</Text>
         <TextInput
-          style={{ height: 52, borderWidth: 1, borderColor: '#CCCCCC', borderRadius: 10, paddingHorizontal: 12, fontSize: 15, color: '#000000' }}
-          placeholder="#######"
-          placeholderTextColor="#AAAAAA"
-          keyboardType="number-pad"
-          textContentType="oneTimeCode"
-          autoComplete="sms-otp"
+          style={[styles.input, styles.codeInput]}
+          placeholder="######"
+          placeholderTextColor="#999"
           value={code}
           onChangeText={setCode}
+          keyboardType="number-pad"
+          maxLength={6}
         />
 
-        <View style={{ flex: 1 }} />
+        {/* Spacing */}
+        <View style={{ height: 100 }} />
       </ScrollView>
 
-      <View style={{ paddingHorizontal: 24, paddingTop: 8, paddingBottom: insets.bottom + 8, backgroundColor: '#FFFFFF' }}>
+      {/* Next Button */}
+      <View
+        style={[
+          styles.footer,
+          { paddingBottom: keyboardHeight > 0 ? keyboardHeight + 12 : insets.bottom + 8 },
+        ]}
+      >
         <TouchableOpacity
-          onPress={() => canProceed && navigation.navigate(isLogin ? 'Main' : 'Registration3')}
-          activeOpacity={canProceed ? 0.85 : 1}
-          style={{ height: 56, borderRadius: 12, backgroundColor: '#000FE1', opacity: canProceed ? 1 : 0.4, alignItems: 'center', justifyContent: 'center' }}>
-          <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: '700' }}>Next →</Text>
+          style={[styles.nextButton, !canProceed && styles.nextButtonDisabled]}
+          onPress={handleNext}
+          disabled={!canProceed}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.nextButtonText}>Next →</Text>
         </TouchableOpacity>
       </View>
 
       {/* SMS-style code popup */}
       <Modal transparent animationType="fade" visible={modalVisible} onRequestClose={handleOk}>
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.45)' }}>
-          <View style={{ width: 300, backgroundColor: '#3A3A3A', borderRadius: 12, padding: 20 }}>
-            <Text style={{ fontSize: 16, fontWeight: '700', color: '#FFFFFF', marginBottom: 6 }}>📱 New Message</Text>
-            <Text style={{ fontSize: 14, color: '#CCCCCC', marginBottom: 4 }}>From: MEEX</Text>
-            <Text style={{ fontSize: 14, color: '#FFFFFF', marginBottom: 4 }}>Your MEEX verification code is:</Text>
-            <Text style={{ fontSize: 28, fontWeight: '700', color: '#FFFFFF', marginBottom: 8, letterSpacing: 4 }}>{generatedCode}</Text>
-            <Text style={{ fontSize: 13, color: '#CCCCCC', marginBottom: 20 }}>Do not share this code with anyone.</Text>
-            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 24 }}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>📱 New Message</Text>
+            <Text style={styles.modalMeta}>From: MEEX</Text>
+            <Text style={styles.modalMeta}>Your MEEX verification code is:</Text>
+            <Text style={styles.modalCode}>{generatedCode}</Text>
+            <Text style={styles.modalDisclaimer}>Do not share this code with anyone.</Text>
+            <View style={styles.modalActions}>
               <TouchableOpacity onPress={handleCopyCode}>
-                <Text style={{ fontSize: 14, fontWeight: '700', color: '#4FC3F7' }}>COPY CODE</Text>
+                <Text style={styles.modalActionText}>COPY CODE</Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={handleOk}>
-                <Text style={{ fontSize: 14, fontWeight: '700', color: '#4FC3F7' }}>OK</Text>
+                <Text style={styles.modalActionText}>OK</Text>
               </TouchableOpacity>
             </View>
           </View>
         </View>
       </Modal>
-
-    </KeyboardAvoidingView>
+    </View>
   );
-}
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.cream,
+  },
+  header: {
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+  },
+  backButton: {
+    paddingVertical: 8,
+  },
+  backText: {
+    fontSize: 15,
+    fontFamily: 'Fredoka_700Bold',
+    color: COLORS.keylinePurple,
+  },
+  progressBarContainer: {
+    height: 4,
+    backgroundColor: '#e0e0e0',
+    width: '100%',
+    maxWidth: 320,
+    alignSelf: 'center',
+  },
+  progressBar: {
+    height: '100%',
+    backgroundColor: COLORS.accentCoral,
+  },
+  content: {
+    flex: 1,
+    paddingHorizontal: 24,
+    paddingTop: 32,
+  },
+  title: {
+    fontSize: 44,
+    fontFamily: 'Fredoka_700Bold',
+    color: COLORS.keylinePurple,
+    marginBottom: 12,
+  },
+  subtitle: {
+    fontSize: 13,
+    fontFamily: 'PlusJakartaSans_400Regular',
+    color: '#999',
+    lineHeight: 18,
+    marginBottom: 24,
+  },
+  label: {
+    fontSize: 14,
+    fontFamily: 'Fredoka_700Bold',
+    color: COLORS.keylinePurple,
+    marginBottom: 12,
+  },
+  phoneRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 28,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 15,
+    color: COLORS.keylinePurple,
+    backgroundColor: '#ffffff',
+  },
+  phoneInput: {
+    flex: 1,
+  },
+  codeInput: {
+    marginBottom: 28,
+  },
+  sendCodeButton: {
+    borderWidth: 2,
+    borderColor: COLORS.keylinePurple,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    minWidth: 100,
+  },
+  sendCodeButtonDisabled: {
+    opacity: 0.5,
+  },
+  sendCodeText: {
+    fontSize: 15,
+    fontFamily: 'Fredoka_700Bold',
+    color: COLORS.keylinePurple,
+  },
+  footer: {
+    paddingHorizontal: 24,
+    paddingTop: 8,
+  },
+  nextButton: {
+    backgroundColor: COLORS.accentCoral,
+    borderRadius: 28,
+    paddingVertical: 16,
+    alignItems: 'center',
+    boxShadow: '3px 3px 0px rgba(32,22,66,0.18)',
+  } as any,
+  nextButtonDisabled: {
+    opacity: 0.5,
+  },
+  nextButtonText: {
+    color: 'white',
+    fontSize: 15,
+    fontFamily: 'Fredoka_700Bold',
+    letterSpacing: 0.5,
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(32,22,66,0.45)',
+  },
+  modalCard: {
+    width: 300,
+    backgroundColor: '#3A3A3A',
+    borderRadius: 12,
+    padding: 20,
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 6,
+  },
+  modalMeta: {
+    fontSize: 14,
+    color: '#CCCCCC',
+    marginBottom: 4,
+  },
+  modalCode: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 8,
+    letterSpacing: 4,
+  },
+  modalDisclaimer: {
+    fontSize: 13,
+    color: '#CCCCCC',
+    marginBottom: 20,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 24,
+  },
+  modalActionText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.piggyPinkBright,
+  },
+});

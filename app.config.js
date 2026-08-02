@@ -40,11 +40,17 @@ module.exports = {
     runtimeVersion: {
       policy: "appVersion"
     },
-    updates: {
-      url: "https://u.expo.dev/553d9283-78fd-4e15-88d1-aa7d46848c26"
-    },
+    // updates: {
+    //   url: "https://u.expo.dev/553d9283-78fd-4e15-88d1-aa7d46848c26"
+    // },
     plugins: [
-      "expo-font"
+      "expo-font",
+      [
+        "expo-image-picker",
+        {
+          photosPermission: "Allow Meex to access your photos so you can set a profile picture."
+        }
+      ]
     ]
   }
 };

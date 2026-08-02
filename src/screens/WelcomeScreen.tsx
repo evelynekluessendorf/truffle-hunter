@@ -1,51 +1,93 @@
 import React from 'react';
-import { View, Text, Image, TouchableOpacity } from 'react-native';
+import { View, Text, Image, TouchableOpacity, Dimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../types';
 
-type Props = NativeStackScreenProps<RootStackParamList, 'Welcome'>;
+// Truffle Hunter colors
+const COLORS = {
+  piggyPink: '#FFB0C7',
+  piggyPinkBright: '#FF7D9E',
+  keylinePurple: '#201642',
+  cream: '#FAF9F6',
+  accentCoral: '#FF6B35',
+  accentCoralLight: '#FFF0EB',
+  sunnyYellow: '#FFF1C6',
+  sunnyYellowBright: '#E8A33D',
+};
 
-export default function WelcomeScreen({ navigation }: Props) {
+const hardShadow = '3px 3px 0px rgba(32,22,66,0.18)';
+
+const { width: screenWidth } = Dimensions.get('window');
+const PIG_ASPECT = 1388 / 1020;
+const pigWidth = screenWidth * 0.65;
+const pigHeight = pigWidth * PIG_ASPECT;
+
+export default function WelcomeScreen({ navigation }: any) {
   const insets = useSafeAreaInsets();
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#FFFFFF', paddingTop: insets.top, paddingBottom: insets.bottom }}>
-
-      {/* Top content — logo + wordmark + tagline */}
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'flex-start', paddingTop: 48 }}>
-        <Image
-          source={require('../../assets/logo.png')}
-          style={{ width: 120, height: 120 }}
-          resizeMode="contain"
-        />
-        <Text style={{ fontSize: 56, fontWeight: '900', color: '#000FE1', letterSpacing: -1, marginTop: 8 }}>MEEX</Text>
-        <Text style={{ fontSize: 18, color: '#000FE1', fontWeight: '500', marginTop: 4 }}>Designed to be closed.</Text>
+    <View style={{ flex: 1, backgroundColor: COLORS.cream, paddingTop: insets.top, paddingBottom: insets.bottom }}>
+      <View style={{ alignItems: 'center', paddingTop: 56 }}>
+        <Text style={{ fontSize: 44, fontFamily: 'Fredoka_700Bold', color: COLORS.keylinePurple }}>
+          Truffle Hunter
+        </Text>
+        <Text style={{ fontSize: 18, fontFamily: 'Fredoka_700Bold', color: COLORS.accentCoral, marginTop: 4 }}>
+          Designed to be closed
+        </Text>
       </View>
 
-      {/* Bottom — fine print + buttons */}
+      <View style={{ flex: 1, alignItems: 'flex-start', justifyContent: 'center' }}>
+        <Image
+          source={require('../assets/illustrations/welcome-pig.png')}
+          style={{ width: pigWidth, height: pigHeight, marginLeft: -pigWidth * 0.12 }}
+          resizeMode="contain"
+        />
+      </View>
+
       <View style={{ paddingHorizontal: 24, paddingBottom: 16, gap: 12 }}>
-        <Text style={{ fontSize: 13, color: '#000FE1', textAlign: 'center', lineHeight: 20, marginBottom: 4 }}>
+        <Text
+          style={{
+            fontSize: 11,
+            fontFamily: 'PlusJakartaSans_400Regular',
+            color: '#999',
+            textAlign: 'center',
+            lineHeight: 20,
+            marginBottom: 4,
+          }}>
           University email required - 18+{'\n'}- Always free for students.
         </Text>
 
-        {/* Register — outlined */}
         <TouchableOpacity
           onPress={() => navigation.navigate('About')}
           activeOpacity={0.85}
-          style={{ height: 56, borderRadius: 12, borderWidth: 2, borderColor: '#000FE1', backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' }}>
-          <Text style={{ fontSize: 16, fontWeight: '700', color: '#000FE1' }}>Register</Text>
+          style={{
+            height: 48,
+            borderRadius: 24,
+            borderWidth: 2,
+            borderColor: COLORS.keylinePurple,
+            backgroundColor: 'transparent',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: hardShadow,
+          } as any}>
+          <Text style={{ fontSize: 15, fontFamily: 'Fredoka_700Bold', color: COLORS.keylinePurple }}>
+            Register
+          </Text>
         </TouchableOpacity>
 
-        {/* Log In — filled */}
         <TouchableOpacity
           onPress={() => navigation.navigate('Registration2', { mode: 'login' })}
           activeOpacity={0.85}
-          style={{ height: 56, borderRadius: 12, backgroundColor: '#000FE1', alignItems: 'center', justifyContent: 'center' }}>
-          <Text style={{ fontSize: 16, fontWeight: '700', color: '#FFFFFF' }}>Log In</Text>
+          style={{
+            height: 48,
+            borderRadius: 24,
+            backgroundColor: COLORS.accentCoral,
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: hardShadow,
+          } as any}>
+          <Text style={{ fontSize: 15, fontFamily: 'Fredoka_700Bold', color: '#FFFFFF' }}>Log In</Text>
         </TouchableOpacity>
       </View>
-
     </View>
   );
 }

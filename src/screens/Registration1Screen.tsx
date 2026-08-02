@@ -1,51 +1,236 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  TextInput,
+  ScrollView,
+  StyleSheet,
+  Keyboard,
+  Platform,
+  Dimensions,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../types';
+import BackButton from '../components/BackButton';
 
-type Props = NativeStackScreenProps<RootStackParamList, 'Registration1'>;
+const { width } = Dimensions.get('window');
 
-export default function Registration1Screen({ navigation, route }: Props) {
-  const insets = useSafeAreaInsets();
+// Truffle Hunter colors
+const COLORS = {
+  piggyPink: '#FFB0C7',
+  piggyPinkBright: '#FF7D9E',
+  keylinePurple: '#201642',
+  cream: '#FAF9F6',
+  accentCoral: '#FF6B35',
+  accentCoralLight: '#FFF0EB',
+  sunnyYellow: '#FFF1C6',
+  sunnyYellowBright: '#E8A33D',
+};
+
+interface Registration1ScreenProps {
+  onNext?: (emailData: { username: string; domain: string }) => void;
+  onBack?: () => void;
+}
+
+export const Registration1Screen: React.FC<Registration1ScreenProps> = ({ onNext, onBack }) => {
   const [username, setUsername] = useState('');
-  const canProceed = username.trim().length > 0;
+  const [domain, setDomain] = useState('@georgetown.edu');
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const insets = useSafeAreaInsets();
+
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const showSub = Keyboard.addListener(showEvent, (e) => {
+      setKeyboardHeight(e.endCoordinates.height);
+    });
+    const hideSub = Keyboard.addListener(hideEvent, () => {
+      setKeyboardHeight(0);
+    });
+
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
+  const handleNext = () => {
+    if (username.trim()) {
+      onNext?.({ username, domain });
+    }
+  };
+
+  const isValid = username.trim().length > 0;
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1, backgroundColor: '#FFFFFF' }}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'padding'}
-      keyboardVerticalOffset={0}>
-      <View style={{ paddingTop: insets.top + 8, paddingHorizontal: 24 }}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginBottom: 12 }}>
-          <Text style={{ fontSize: 16, color: '#000000' }}>{'< Back'}</Text>
-        </TouchableOpacity>
-        <View style={{ height: 3, backgroundColor: '#E0E0E0', borderRadius: 2 }}>
-          <View style={{ width: '30%', height: 3, backgroundColor: '#000FE1', borderRadius: 2 }} />
-        </View>
+    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+      {/* Header */}
+      <View style={styles.header}>
+        <BackButton onPress={onBack} style={styles.backButton} />
       </View>
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 24, paddingTop: 24 }} keyboardShouldPersistTaps="handled">
-        <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#E8F5E9', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 100, alignSelf: 'flex-start', marginBottom: 16 }}>
-          <Text style={{ fontSize: 13, color: '#2E7D32' }}>💡 .edu email only</Text>
+
+      {/* Progress Bar */}
+      <View style={styles.progressBarContainer}>
+        <View style={[styles.progressBar, { width: '20%' }]} />
+      </View>
+
+      {/* Content */}
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        <Text style={styles.title}>Provide university email</Text>
+
+        <View style={styles.infoTag}>
+          <Text style={styles.infoTagIcon}>💡</Text>
+          <Text style={styles.infoTagText}>.edu email only</Text>
         </View>
-        <Text style={{ fontSize: 28, fontWeight: '800', color: '#000000', marginBottom: 24 }}>Provide university email</Text>
-        <Text style={{ fontSize: 14, fontWeight: '700', color: '#000000', marginBottom: 8 }}>University Email*:</Text>
-        <View style={{ flexDirection: 'row', gap: 8, marginBottom: 24 }}>
-          <TextInput style={{ flex: 1.2, height: 52, borderWidth: 1, borderColor: '#CCCCCC', borderRadius: 10, paddingHorizontal: 12, fontSize: 15, color: '#000000', backgroundColor: '#FFFFFF' }} placeholder="maya.chen" placeholderTextColor="#AAAAAA" autoCapitalize="none" keyboardType="email-address" value={username} onChangeText={setUsername} />
-          <View style={{ flex: 1, height: 52, borderWidth: 1, borderColor: '#CCCCCC', borderRadius: 10, paddingHorizontal: 10, justifyContent: 'center', backgroundColor: '#F9F9F9' }}>
-            <Text style={{ fontSize: 13, color: '#888888' }}>@university.edu</Text>
-          </View>
+
+        <Text style={styles.label}>University Email*:</Text>
+        <View style={styles.emailInputRow}>
+          <TextInput
+            style={[styles.emailInput, styles.usernameInput]}
+            placeholder="maya.chen"
+            placeholderTextColor="#999"
+            value={username}
+            onChangeText={setUsername}
+          />
+          <TextInput
+            style={[styles.emailInput, styles.domainInput]}
+            placeholder="@georgetown.edu"
+            placeholderTextColor="#999"
+            value={domain}
+            onChangeText={setDomain}
+            editable={false}
+          />
         </View>
-        <View style={{ flex: 1 }} />
+
+        {/* Spacing */}
+        <View style={{ height: 100 }} />
       </ScrollView>
-      <View style={{ paddingHorizontal: 24, paddingTop: 8, paddingBottom: insets.bottom + 8, backgroundColor: '#FFFFFF' }}>
+
+      {/* Next Button */}
+      <View
+        style={[
+          styles.footer,
+          { paddingBottom: keyboardHeight > 0 ? keyboardHeight + 12 : insets.bottom + 8 },
+        ]}
+      >
         <TouchableOpacity
-          onPress={() => canProceed && navigation.navigate('Registration2')}
-          activeOpacity={canProceed ? 0.85 : 1}
-          style={{ height: 56, borderRadius: 12, backgroundColor: '#000FE1', opacity: canProceed ? 1 : 0.4, alignItems: 'center', justifyContent: 'center' }}>
-          <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: '700' }}>Next →</Text>
+          style={[styles.nextButton, !isValid && styles.nextButtonDisabled]}
+          onPress={handleNext}
+          disabled={!isValid}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.nextButtonText}>Next →</Text>
         </TouchableOpacity>
       </View>
-    </KeyboardAvoidingView>
+    </View>
   );
-}
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.cream,
+  },
+  header: {
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+  },
+  backButton: {
+    paddingVertical: 8,
+  },
+  backText: {
+    fontSize: 15,
+    fontFamily: 'Fredoka_700Bold',
+    color: COLORS.keylinePurple,
+  },
+  progressBarContainer: {
+    height: 4,
+    backgroundColor: '#e0e0e0',
+    width: '100%',
+    maxWidth: 320,
+    alignSelf: 'center',
+  },
+  progressBar: {
+    height: '100%',
+    backgroundColor: COLORS.accentCoral,
+  },
+  content: {
+    flex: 1,
+    paddingHorizontal: 24,
+    paddingTop: 32,
+  },
+  title: {
+    fontSize: 44,
+    fontFamily: 'Fredoka_700Bold',
+    color: COLORS.keylinePurple,
+    marginBottom: 20,
+  },
+  infoTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'transparent',
+    borderWidth: 2,
+    borderColor: COLORS.accentCoral,
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    marginBottom: 28,
+    alignSelf: 'flex-start',
+  },
+  infoTagIcon: {
+    fontSize: 14,
+    marginRight: 8,
+  },
+  infoTagText: {
+    fontSize: 13,
+    fontFamily: 'PlusJakartaSans_400Regular',
+    color: COLORS.keylinePurple,
+  },
+  label: {
+    fontSize: 14,
+    fontFamily: 'Fredoka_700Bold',
+    color: COLORS.keylinePurple,
+    marginBottom: 12,
+  },
+  emailInputRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  emailInput: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 15,
+    color: COLORS.keylinePurple,
+    backgroundColor: '#ffffff',
+  },
+  usernameInput: {
+    flex: 1,
+  },
+  domainInput: {
+    flex: 1.2,
+  },
+  footer: {
+    paddingHorizontal: 24,
+    paddingTop: 8,
+  },
+  nextButton: {
+    backgroundColor: COLORS.accentCoral,
+    borderRadius: 28,
+    paddingVertical: 16,
+    alignItems: 'center',
+    boxShadow: '3px 3px 0px rgba(32,22,66,0.18)',
+  } as any,
+  nextButtonDisabled: {
+    opacity: 0.5,
+  },
+  nextButtonText: {
+    color: 'white',
+    fontSize: 15,
+    fontFamily: 'Fredoka_700Bold',
+    letterSpacing: 0.5,
+  },
+});
