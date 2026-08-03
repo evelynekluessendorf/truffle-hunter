@@ -43,10 +43,6 @@ export default function MyProfileScreen({ navigation }: any) {
       // Edit re-enters the profile-building flow; those screens write straight
       // back into the shared registration draft this screen reads from.
       onEdit={() => navigation.navigate('Registration4')}
-      onSave={() => {
-        // TODO: persist to API. Edits currently save themselves into UserContext
-        // as they're made in the registration screens, so nothing to flush yet.
-      }}
       onTripleTapName={() => setMockIndex(i => (i + 1) % MOCK_PROFILES.length)}
     />
   );

@@ -63,9 +63,13 @@ export const DistanceDrawer: React.FC<DistanceDrawerProps> = ({
   return (
     <BottomSheetModal
       ref={bottomSheetModalRef}
-      snapPoints={[350]}
-      enableDynamicSizing={false}
+      // Sized to its content, like the inline drawer it replaced — a fixed
+      // snapPoint left a tall sheet with a collapsed content box.
+      enableDynamicSizing
       enablePanDownToClose
+      // `detached` is what actually lifts the sheet clear of the tab bar;
+      // bottomInset alone leaves it anchored to the screen bottom.
+      detached
       bottomInset={bottomInset}
       onDismiss={onDismiss}
       handleIndicatorStyle={{ backgroundColor: '#DDDDDD' }}
@@ -76,7 +80,7 @@ export const DistanceDrawer: React.FC<DistanceDrawerProps> = ({
         borderRadius: 20,
       }}
     >
-      <BottomSheetView style={{ flex: 1, paddingHorizontal: 20, paddingTop: 4 }}>
+      <BottomSheetView style={{ paddingHorizontal: 20, paddingTop: 4, paddingBottom: 20 }}>
         {peer && (
           <View style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: 20 }}>
             {/* avatar → opens the full profile */}

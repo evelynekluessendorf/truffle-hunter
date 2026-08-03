@@ -126,9 +126,13 @@ export const IceBreakersDrawer: React.FC<IceBreakersDrawerProps> = ({
   return (
     <BottomSheetModal
       ref={bottomSheetModalRef}
-      snapPoints={[500]}
-      enableDynamicSizing={false}
+      // Sized to its content, capped so a long list still leaves the map visible.
+      enableDynamicSizing
+      maxDynamicContentSize={520}
       enablePanDownToClose
+      // `detached` is what actually lifts the sheet clear of the tab bar;
+      // bottomInset alone leaves it anchored to the screen bottom.
+      detached
       bottomInset={bottomInset}
       onDismiss={onDismiss}
       handleIndicatorStyle={{ backgroundColor: '#DDDDDD' }}
@@ -139,8 +143,8 @@ export const IceBreakersDrawer: React.FC<IceBreakersDrawerProps> = ({
         borderRadius: 20,
       }}
     >
+      {/* No flex:1 here — it collapses the content box under dynamic sizing. */}
       <BottomSheetScrollView
-        style={{ flex: 1 }}
         contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 4, paddingBottom: 24 }}
         showsVerticalScrollIndicator={false}
       >

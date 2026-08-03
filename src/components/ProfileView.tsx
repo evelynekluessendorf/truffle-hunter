@@ -55,8 +55,17 @@ const SOCIAL_PLATFORMS: { key: string; icon: any }[] = [
   { key: 'facebook', icon: require('../assets/icons/Facebook.png') },
 ];
 
-/** "https://instagram.com/amysmith" → "instagram.com/amysmith" */
-const displayUrl = (url: string) => url.replace(/^https?:\/\//, '').replace(/\/$/, '');
+/**
+ * Reduces a stored social value to a handle for display.
+ * Accepts either a full URL or a raw handle typed at registration:
+ *   "https://instagram.com/amysmith" → "@amysmith"
+ *   "https://tiktok.com/@amysmith"   → "@amysmith"
+ *   "amysmith" / "@amysmith"         → "@amysmith"
+ */
+const displayHandle = (value: string) => {
+  const last = value.replace(/^https?:\/\//, '').replace(/\/+$/, '').split('/').pop() ?? value;
+  return `@${last.replace(/^@/, '')}`;
+};
 
 export interface ProfileInteraction {
   id: string;
@@ -81,7 +90,6 @@ interface ProfileViewProps {
   isOwner: boolean;
   onBack?: () => void;
   onEdit?: () => void;
-  onSave?: () => void;
   onSayHi?: () => void;
   /** DEV ONLY — fired when the name is tapped 3× in quick succession. */
   onTripleTapName?: () => void;
@@ -92,7 +100,6 @@ export default function ProfileView({
   isOwner,
   onBack,
   onEdit,
-  onSave,
   onSayHi,
   onTripleTapName,
 }: ProfileViewProps) {
@@ -290,27 +297,32 @@ export default function ProfileView({
               }}>
               SOCIAL MEDIA
             </Text>
-          <View
-            style={{
-              flexDirection: 'row', flexWrap: 'wrap',
-              justifyContent: 'center', alignItems: 'center',
-              gap: 12,
-            }}>
-            {socials.map(platform => {
+          <View>
+            {socials.map((platform, i) => {
               const url = socialMedia[platform.key];
               return (
                 <Pressable
                   key={platform.key}
                   onPress={() => Linking.openURL(url).catch(() => {})}
                   style={({ pressed }) => ({
-                    flexDirection: 'row', alignItems: 'center', gap: 8,
-                    backgroundColor: COLORS.cream, borderRadius: 12,
-                    paddingLeft: 6, paddingRight: 14, paddingVertical: 6,
-                    opacity: pressed ? 0.7 : 1,
+                    flexDirection: 'row', alignItems: 'center', gap: 12,
+                    paddingVertical: 10,
+                    borderTopWidth: i === 0 ? 0 : 1,
+                    borderTopColor: 'rgba(250,249,246,0.15)',
+                    opacity: pressed ? 0.6 : 1,
                   })}>
-                  <Image source={platform.icon} style={{ width: 40, height: 40 }} contentFit="contain" />
-                  <Text style={{ fontSize: 12, fontFamily: 'PlusJakartaSans_400Regular', color: COLORS.keylinePurple }}>
-                    {displayUrl(url)}
+                  {/* cream disc — Tiktok and X are solid black and would vanish
+                      against the profile's dark lower half */}
+                  <View
+                    style={{
+                      width: 44, height: 44, borderRadius: 22,
+                      backgroundColor: COLORS.cream,
+                      alignItems: 'center', justifyContent: 'center',
+                    }}>
+                    <Image source={platform.icon} style={{ width: 26, height: 26 }} contentFit="contain" />
+                  </View>
+                  <Text style={{ fontSize: 15, fontFamily: 'PlusJakartaSans_500Medium', color: COLORS.cream }}>
+                    {displayHandle(url)}
                   </Text>
                 </Pressable>
               );
@@ -319,19 +331,22 @@ export default function ProfileView({
           </>
         )}
 
-        {/* 7 — bottom button */}
-        <TouchableOpacity
-          onPress={isOwner ? onSave : onSayHi}
-          activeOpacity={0.85}
-          style={{
-            height: 56, borderRadius: 999, backgroundColor: COLORS.accentCoral,
-            alignItems: 'center', justifyContent: 'center', marginTop: 24,
-            boxShadow: HARD_SHADOW,
-          } as any}>
-          <Text style={{ fontSize: 15, fontFamily: 'Fredoka_700Bold', color: '#FFFFFF' }}>
-            {isOwner ? 'Save' : 'Say Hi!'}
-          </Text>
-        </TouchableOpacity>
+        {/* 7 — bottom button. Your own profile has none: edits save themselves
+            through the registration screens, so there was nothing to confirm. */}
+        {!isOwner && (
+          <TouchableOpacity
+            onPress={onSayHi}
+            activeOpacity={0.85}
+            style={{
+              height: 56, borderRadius: 999, backgroundColor: COLORS.accentCoral,
+              alignItems: 'center', justifyContent: 'center', marginTop: 24,
+              boxShadow: HARD_SHADOW,
+            } as any}>
+            <Text style={{ fontSize: 15, fontFamily: 'Fredoka_700Bold', color: '#FFFFFF' }}>
+              Say Hi!
+            </Text>
+          </TouchableOpacity>
+        )}
       </ScrollView>
     </View>
   );

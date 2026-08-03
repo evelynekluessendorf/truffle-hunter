@@ -24,6 +24,24 @@ const ICONS = {
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
 
+/**
+ * The tab bar's resting style. Shared so a screen that hides the bar
+ * (DiscoverScreen, while a drawer is open) can restore the exact same
+ * style afterwards instead of duplicating it.
+ */
+export function useTabBarStyle() {
+  const insets = useSafeAreaInsets();
+  const bottomPadding = Platform.OS === 'android' ? Math.max(insets.bottom, 16) : insets.bottom;
+  return {
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 0,
+    elevation: 0,
+    height: 78 + bottomPadding,
+    paddingTop: 10,
+    paddingBottom: bottomPadding,
+  };
+}
+
 function TabItem({ label, icon, focused }: { label: string; icon: any; focused: boolean }) {
   return (
     <View style={{ alignItems: 'center', justifyContent: 'flex-start', minWidth: 88, paddingHorizontal: 4 }}>
@@ -61,23 +79,14 @@ function TabItem({ label, icon, focused }: { label: string; icon: any; focused: 
 }
 
 export default function TabNavigator() {
-  const insets = useSafeAreaInsets();
-  const bottomPadding = Platform.OS === 'android' ? Math.max(insets.bottom, 16) : insets.bottom;
-  const tabBarHeight = 78 + bottomPadding;
+  const tabBarStyle = useTabBarStyle();
 
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
         tabBarShowLabel: false,
-        tabBarStyle: {
-          backgroundColor: '#FFFFFF',
-          borderTopWidth: 0,
-          elevation: 0,
-          height: tabBarHeight,
-          paddingTop: 10,
-          paddingBottom: bottomPadding,
-        },
+        tabBarStyle,
         tabBarItemStyle: {
           justifyContent: 'flex-start',
           alignItems: 'center',

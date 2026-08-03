@@ -1,15 +1,12 @@
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Image, Modal, Platform } from 'react-native';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, Image, Modal } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useFocusEffect } from '@react-navigation/native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import MapViewDirections from 'react-native-maps-directions';
-import { BottomSheetModal } from '@gorhom/bottom-sheet';
+import { useTabBarStyle } from '../navigation/TabNavigator';
 import { useUser } from '../context/UserContext';
 import { DEFAULT_PROFILE } from '../data/mockProfiles';
 import DirectionSignIcon from '../components/DirectionSignIcon';
-import DistanceDrawer from '../components/DistanceDrawer';
-import IceBreakersDrawer from '../components/IceBreakersDrawer';
 
 const GOOGLE_MAPS_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
 
@@ -49,6 +46,30 @@ const CONVO_COUNTS: Record<string, number> = {
 };
 
 const YOU_COORD = { latitude: 37.7760, longitude: -122.4190 };
+
+/**
+ * Normalises the stored distance to the drawer's phrasing. The value arrives in
+ * two shapes: "320m" straight off a map pin, or "320m away" when it came back
+ * through a profile via Say Hi. Both render as "320m from you".
+ */
+const distanceFromYou = (raw?: string) => {
+  const m = String(raw ?? '').match(/([\d.]+\s*[a-zA-Z]+)/);
+  return m ? `${m[1]} from you` : '';
+};
+
+type Coord = { latitude: number; longitude: number };
+
+/** Compass bearing from → to, in degrees, so navigation can face the route. */
+const bearingBetween = (from: Coord, to: Coord) => {
+  const rad = (d: number) => (d * Math.PI) / 180;
+  const deg = (r: number) => (r * 180) / Math.PI;
+  const dLng = rad(to.longitude - from.longitude);
+  const y = Math.sin(dLng) * Math.cos(rad(to.latitude));
+  const x =
+    Math.cos(rad(from.latitude)) * Math.sin(rad(to.latitude)) -
+    Math.sin(rad(from.latitude)) * Math.cos(rad(to.latitude)) * Math.cos(dLng);
+  return (deg(Math.atan2(y, x)) + 360) % 360;
+};
 
 const INITIAL_REGION = {
   latitude: YOU_COORD.latitude,
@@ -123,12 +144,7 @@ const USERS = [
 
 export default function DiscoverScreen({ navigation, route }: any) {
   const insets = useSafeAreaInsets();
-  // Mirrors TabNavigator's height so drawers sit above the tab bar, not under it.
-  const TAB_BAR_HEIGHT =
-    78 + (Platform.OS === 'android' ? Math.max(insets.bottom, 16) : insets.bottom);
   const mapRef = useRef<MapView>(null);
-  const distanceSheetRef = useRef<BottomSheetModal>(null);
-  const iceBreakersSheetRef = useRef<BottomSheetModal>(null);
   const [view, setView] = useState<'map' | 'list'>('map');
   const [mode, setMode] = useState<MapMode>('default');
   const [tappedPinIdx, setTappedPinIdx] = useState<number | null>(null);
@@ -147,15 +163,59 @@ export default function DiscoverScreen({ navigation, route }: any) {
   const myAvatar = registrationDraft.photoUri
     ? { uri: registrationDraft.photoUri }
     : (DEFAULT_PROFILE.profilePhoto as { uri: string });
-  const [showLockedModal, setShowLockedModal] = useState(false);
+  /** Wording for the "you're offline" gate, per action being blocked. */
+  const LOCKED_DEFAULT = {
+    message: 'Make yourself available to have access to this information',
+    confirmLabel: 'Set myself online',
+  };
+  const LOCKED_PROFILE = {
+    message: "You must be set as visible to be able to see people's profile",
+    confirmLabel: 'Set as Visible',
+  };
+  const [lockedPrompt, setLockedPrompt] = useState<typeof LOCKED_DEFAULT | null>(null);
   /** Runs `action` when available, otherwise explains why it's locked. */
-  const requireAvailable = (action: () => void) => {
+  const requireAvailable = (action: () => void, prompt = LOCKED_DEFAULT) => {
     if (visible) action();
-    else setShowLockedModal(true);
+    else setLockedPrompt(prompt);
   };
   const LOCKED = '🔒';
   const [mapSize, setMapSize] = useState({ width: 0, height: 0 });
   const [region, setRegion] = useState(INITIAL_REGION);
+
+  // A drawer covers the tab bar rather than sitting above it. A tab screen
+  // can't paint over its own navigator's tab bar, so the bar is hidden while
+  // a drawer is open — the screen then extends to the bottom of the display
+  // and the drawer, anchored at bottom: 0, takes that space.
+  const tabBarStyle = useTabBarStyle();
+  const drawerOpen = mode !== 'default';
+  useEffect(() => {
+    navigation.setOptions({
+      tabBarStyle: drawerOpen ? { display: 'none' } : tabBarStyle,
+    });
+  }, [drawerOpen, navigation]);
+
+  /** Drawers now reach the display edge, so they clear the home indicator themselves. */
+  const drawerPadBottom = insets.bottom;
+
+  /**
+   * Drawer toggles share the map shout-out button's treatment: a 44pt rounded
+   * square with a hard shadow — keyline-purple fill and white glyph when it's
+   * the drawer you're in, white fill and purple glyph otherwise.
+   */
+  const toggleButton = (selected: boolean) => ({
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: selected ? COLORS.keylinePurple : '#FFFFFF',
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    boxShadow: '2px 2px 0px rgba(32,22,66,0.15)',
+  });
+  const toggleGlyph = (selected: boolean) => ({
+    width: 24,
+    height: 24,
+    tintColor: selected ? '#FFFFFF' : COLORS.keylinePurple,
+  });
 
   const openOpeners = route?.params?.openOpeners;
   const sayHiUser = route?.params?.user;
@@ -175,46 +235,70 @@ export default function DiscoverScreen({ navigation, route }: any) {
     }, 300);
   };
 
-  const closeDirections = () => {
-    setMode('default');
+  /**
+   * Start → navigation camera: close in on you, tilt, and face the destination
+   * so the route runs "up" the screen. Your position is fixed mock data, so
+   * this is a heading-up view of the route rather than live turn-by-turn.
+   */
+  const startNavigating = (peer: any) => {
+    setMode('navigating');
+    if (!peer?.lat) return;
+    const dest = { latitude: peer.lat, longitude: peer.lng };
+    mapRef.current?.animateCamera(
+      { center: YOU_COORD, heading: bearingBetween(YOU_COORD, dest), pitch: 55, zoom: 18 },
+      { duration: 900 }
+    );
+  };
+
+  /** Stop → back to the flat, north-up overview of the whole route. */
+  const stopNavigating = (peer: any) => {
+    setMode('directions');
+    mapRef.current?.animateCamera({ heading: 0, pitch: 0 }, { duration: 400 });
+    if (!peer?.lat) return;
+    const dest = { latitude: peer.lat, longitude: peer.lng };
+    setTimeout(() => {
+      mapRef.current?.fitToCoordinates([YOU_COORD, dest], {
+        edgePadding: { top: 100, right: 80, bottom: 400, left: 80 },
+        animated: true,
+      });
+    }, 420);
+  };
+
+  /** Tears down the directions/icebreakers state without deciding what comes next. */
+  const resetDirections = () => {
     setOpenerUser(null);
     setRouteInfo(null);
     setPopupUser(null);
     mapRef.current?.animateToRegion({ ...YOU_COORD, latitudeDelta: 0.008, longitudeDelta: 0.008 }, 600);
   };
 
-  // `mode` is the single source of truth; the sheets follow it.
-  useEffect(() => {
-    if (mode === 'directions' || mode === 'navigating') {
-      iceBreakersSheetRef.current?.dismiss();
-      distanceSheetRef.current?.present();
-    } else if (mode === 'openers') {
-      distanceSheetRef.current?.dismiss();
-      iceBreakersSheetRef.current?.present();
-    } else {
-      distanceSheetRef.current?.dismiss();
-      iceBreakersSheetRef.current?.dismiss();
-    }
-  }, [mode]);
+  const closeDirections = () => {
+    setMode('default');
+    resetDirections();
+  };
 
-  // When returning from UserProfile via "Say Hi!" — open the distance drawer and zoom to user.
+  /**
+   * Filters take over the screen, so any open drawer is dismissed first —
+   * one panel at a time. Only the map-route modes need their state torn down;
+   * shout-outs just close, with no map animation.
+   */
+  const openFilters = () => {
+    if (mode === 'directions' || mode === 'navigating' || mode === 'openers') {
+      resetDirections();
+    }
+    setMode('default');
+    setShowFilters(true);
+  };
+
+
+  // Returning from UserProfile via "Say Hi!" — same entry as every other route
+  // into directions, so the map framing is identical whichever way you arrived.
   useEffect(() => {
     if (!openOpeners || !sayHiUser) return;
-    setOpenerUser(sayHiUser);
-    setMode('directions');
     setView('map');
     setTappedPinIdx(null);
-    setPopupUser(null);
-
-    const userLat = sayHiUser.lat ?? YOU_COORD.latitude;
-    const userLng = sayHiUser.lng ?? YOU_COORD.longitude;
-
-    setTimeout(() => {
-      mapRef.current?.fitToCoordinates(
-        [YOU_COORD, { latitude: userLat, longitude: userLng }],
-        { edgePadding: { top: 180, right: 80, bottom: 380, left: 80 }, animated: true }
-      );
-    }, 400);
+    setOpenerUser(sayHiUser);
+    enterDirections(sayHiUser);
   }, [openOpeners, sayHiUser]);
 
   // Reset popup when switching to map so no pin is pre-selected.
@@ -222,15 +306,10 @@ export default function DiscoverScreen({ navigation, route }: any) {
     if (view === 'map') setTappedPinIdx(null);
   }, [view]);
 
-  // Reset to clean map state every time this screen is focused — but not when arriving via Say Hi!
-  useFocusEffect(useCallback(() => {
-    if (!openOpeners) {
-      setView('map');
-      setMode('default');
-      setTappedPinIdx(null);
-      setOpenerUser(null);
-    }
-  }, [openOpeners]));
+  // NOTE: this screen deliberately keeps its state across focus changes.
+  // Opening someone's profile pushes a screen on top; coming back must land
+  // on exactly what you left — the same drawer open, the same map region.
+  // A reset here would clear `mode` on every focus and close the drawer.
 
   // Ambient pin drift — slow organic movement, ~1–2m per tick
   useEffect(() => {
@@ -284,6 +363,7 @@ export default function DiscoverScreen({ navigation, route }: any) {
     });
   };
 
+
   const sortedUsers = [...USERS].sort((a, b) => parseInt(a.distance) - parseInt(b.distance));
 
   const filteredUsers = USERS.filter(user => {
@@ -306,7 +386,7 @@ export default function DiscoverScreen({ navigation, route }: any) {
           ))}
         </View>
         <TouchableOpacity
-          onPress={() => setShowFilters(true)}
+          onPress={openFilters}
           style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}>
           <Image source={ICONS.filter} style={{ width: 26, height: 26, tintColor: COLORS.keylinePurple }} resizeMode="contain" />
         </TouchableOpacity>
@@ -316,7 +396,7 @@ export default function DiscoverScreen({ navigation, route }: any) {
 
   // Shown when an offline user taps a locked action. Rendered in both views.
   const lockedModal = (
-    <Modal transparent animationType="fade" visible={showLockedModal} onRequestClose={() => setShowLockedModal(false)}>
+    <Modal transparent animationType="fade" visible={lockedPrompt !== null} onRequestClose={() => setLockedPrompt(null)}>
       <View style={{ flex: 1, backgroundColor: 'rgba(32,22,66,0.45)', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 }}>
         <View
           style={{
@@ -325,19 +405,21 @@ export default function DiscoverScreen({ navigation, route }: any) {
             boxShadow: '3px 3px 0px rgba(32,22,66,0.18)',
           } as any}>
           <Text style={{ fontSize: 18, fontFamily: 'Fredoka_700Bold', color: COLORS.keylinePurple, marginBottom: 22, lineHeight: 26 }}>
-            Make yourself available to have access to this information
+            {lockedPrompt?.message}
           </Text>
           <TouchableOpacity
-            onPress={() => { setVisible(true); setShowLockedModal(false); }}
+            onPress={() => { setVisible(true); setLockedPrompt(null); }}
             activeOpacity={0.85}
             style={{
               height: 48, borderRadius: 999, backgroundColor: COLORS.accentCoral,
               alignItems: 'center', justifyContent: 'center', marginBottom: 10,
             }}>
-            <Text style={{ fontSize: 15, fontFamily: 'Fredoka_700Bold', color: '#FFFFFF' }}>Set myself online</Text>
+            <Text style={{ fontSize: 15, fontFamily: 'Fredoka_700Bold', color: '#FFFFFF' }}>
+              {lockedPrompt?.confirmLabel}
+            </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            onPress={() => setShowLockedModal(false)}
+            onPress={() => setLockedPrompt(null)}
             activeOpacity={0.85}
             style={{
               height: 48, borderRadius: 999, backgroundColor: '#FFFFFF',
@@ -371,7 +453,7 @@ export default function DiscoverScreen({ navigation, route }: any) {
               ))}
             </View>
             <TouchableOpacity
-              onPress={() => setShowFilters(true)}
+              onPress={openFilters}
               style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}>
               <Image source={ICONS.filter} style={{ width: 26, height: 26, tintColor: COLORS.keylinePurple }} resizeMode="contain" />
             </TouchableOpacity>
@@ -457,32 +539,42 @@ export default function DiscoverScreen({ navigation, route }: any) {
 
           {/* ── SHOUTOUT BELL — floating over the map, top right.
               right:24 + 44px width keeps it on the same vertical axis as the header filter icon ── */}
-          {mode !== 'openers' && mode !== 'directions' && mode !== 'navigating' && (
-            <View style={{ position: 'absolute', top: 12, right: 24, zIndex: 30 }}>
-              <TouchableOpacity
-                onPress={() => requireAvailable(() => {
-                  if (mode === 'default') { setMode('shoutout'); setTappedPinIdx(null); }
-                  else if (mode === 'shoutout') setMode('default');
-                })}
-                style={{
-                  width: 44, height: 44, borderRadius: 14,
-                  backgroundColor: mode === 'shoutout' ? COLORS.keylinePurple : '#FFFFFF',
-                  alignItems: 'center', justifyContent: 'center',
-                  boxShadow: '2px 2px 0px rgba(32,22,66,0.15)',
-                } as any}>
-                <Image
-                  source={ICONS.hangouts}
-                  style={{ width: 24, height: 24, tintColor: mode === 'shoutout' ? '#FFFFFF' : COLORS.keylinePurple }}
-                  resizeMode="contain"
-                />
-              </TouchableOpacity>
-              {USERS.filter(u => u.hasShout).length > 0 && (
-                <View style={{ position: 'absolute', top: -4, right: -4, minWidth: 18, height: 18, borderRadius: 9, backgroundColor: COLORS.piggyPinkBright, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4, borderWidth: 1.5, borderColor: '#FFFFFF' }}>
-                  <Text style={{ fontSize: 10, fontFamily: 'Fredoka_700Bold', color: '#FFFFFF' }}>{USERS.filter(u => u.hasShout).length}</Text>
-                </View>
-              )}
-            </View>
-          )}
+          {/* Always visible — while any drawer is open it acts as the dismiss control. */}
+          <View style={{ position: 'absolute', top: 12, right: 24, zIndex: 30 }}>
+            <TouchableOpacity
+              onPress={() => {
+                if (mode === 'shoutout') {
+                  // already here — toggle back off
+                  setMode('default');
+                } else {
+                  // From the map, or from any open drawer: the drawer is torn
+                  // down and replaced by the shout-out list. Gated first, so a
+                  // blocked tap leaves the current drawer untouched.
+                  requireAvailable(() => {
+                    resetDirections();
+                    setMode('shoutout');
+                    setTappedPinIdx(null);
+                  });
+                }
+              }}
+              style={{
+                width: 44, height: 44, borderRadius: 14,
+                backgroundColor: mode === 'shoutout' ? COLORS.keylinePurple : '#FFFFFF',
+                alignItems: 'center', justifyContent: 'center',
+                boxShadow: '2px 2px 0px rgba(32,22,66,0.15)',
+              } as any}>
+              <Image
+                source={ICONS.hangouts}
+                style={{ width: 24, height: 24, tintColor: mode === 'shoutout' ? '#FFFFFF' : COLORS.keylinePurple }}
+                resizeMode="contain"
+              />
+            </TouchableOpacity>
+            {USERS.filter(u => u.hasShout).length > 0 && (
+              <View style={{ position: 'absolute', top: -4, right: -4, minWidth: 18, height: 18, borderRadius: 9, backgroundColor: COLORS.piggyPinkBright, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4, borderWidth: 1.5, borderColor: '#FFFFFF' }}>
+                <Text style={{ fontSize: 10, fontFamily: 'Fredoka_700Bold', color: '#FFFFFF' }}>{USERS.filter(u => u.hasShout).length}</Text>
+              </View>
+            )}
+          </View>
 
           {/* ── PIN POPUP — dynamically positioned to stay glued to the tapped pin ── */}
           {popupUser && mode === 'default' && popupPosition && mapSize.width > 0 && (() => {
@@ -532,9 +624,14 @@ export default function DiscoverScreen({ navigation, route }: any) {
                       <Text style={{ fontFamily: 'Fredoka_700Bold', fontSize: 16, color: COLORS.keylinePurple }}>{popupUser.name}</Text>
                       <Text style={{ color: '#666', fontSize: 13, fontFamily: 'PlusJakartaSans_400Regular' }}>{popupUser.year} · {popupUser.major}</Text>
                     </View>
+                    {/* distance pill → walks you there, same as the shout-out list's sign icon */}
                     <TouchableOpacity
-                      activeOpacity={visible ? 1 : 0.8}
-                      onPress={() => requireAvailable(() => {})}
+                      activeOpacity={0.8}
+                      onPress={() => requireAvailable(() => {
+                        const peer = popupUser;
+                        setOpenerUser(peer);
+                        enterDirections(peer);
+                      })}
                       style={{
                         backgroundColor: visible ? COLORS.accentCoral : '#BBB',
                         borderRadius: 100, paddingHorizontal: 12, paddingVertical: 6,
@@ -550,7 +647,10 @@ export default function DiscoverScreen({ navigation, route }: any) {
                     </Text>
                   </View>
                   <TouchableOpacity
-                    onPress={() => { handleViewProfile(popupUser); setPopupUser(null); }}
+                    onPress={() => requireAvailable(() => {
+                      handleViewProfile(popupUser);
+                      setPopupUser(null);
+                    }, LOCKED_PROFILE)}
                     style={{ backgroundColor: COLORS.accentCoral, padding: 14, borderRadius: 100, marginTop: 12, alignItems: 'center' }}>
                     <Text style={{ color: '#FFFFFF', fontFamily: 'Fredoka_700Bold', fontSize: 15 }}>View Profile</Text>
                   </TouchableOpacity>
@@ -561,7 +661,7 @@ export default function DiscoverScreen({ navigation, route }: any) {
 
           {/* ── SHOUTOUT DRAWER ── */}
           {mode === 'shoutout' && (
-            <View style={{ position: 'absolute', bottom: TAB_BAR_HEIGHT, left: 0, right: 0, backgroundColor: COLORS.cream, borderTopLeftRadius: 20, borderTopRightRadius: 20, borderWidth: 2, borderColor: COLORS.keylinePurple, paddingTop: 12, paddingBottom: 16, zIndex: 20 }}>
+            <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: COLORS.cream, borderTopLeftRadius: 20, borderTopRightRadius: 20, borderWidth: 2, borderColor: COLORS.keylinePurple, paddingTop: 12, paddingBottom: 16 + drawerPadBottom, zIndex: 20 }}>
               <View style={{ width: 40, height: 4, backgroundColor: '#DDDDDD', borderRadius: 2, alignSelf: 'center', marginBottom: 14 }} />
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, marginBottom: 8 }}>
                 <Text style={{ fontSize: 18, fontFamily: 'Fredoka_700Bold', color: COLORS.keylinePurple }}>Shoutouts nearby</Text>
@@ -572,14 +672,21 @@ export default function DiscoverScreen({ navigation, route }: any) {
               {USERS.filter(u => u.hasShout).map((u, i) => (
                 <View key={u.id} style={{ paddingHorizontal: 20, paddingVertical: 14, borderTopWidth: i === 0 ? 0 : 1, borderColor: '#EEE' }}>
                   <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
-                    <Image source={{ uri: u.photo }} style={{ width: 40, height: 40, borderRadius: 20, marginRight: 12, marginTop: 2, borderWidth: 1.5, borderColor: COLORS.keylinePurple }} />
-                    <View style={{ flex: 1, marginRight: 8 }}>
+                    {/* avatar → profile */}
+                    <TouchableOpacity onPress={() => handleViewProfile(u)} activeOpacity={0.85}>
+                      <Image source={{ uri: u.photo }} style={{ width: 40, height: 40, borderRadius: 20, marginRight: 12, marginTop: 2, borderWidth: 1.5, borderColor: COLORS.keylinePurple }} />
+                    </TouchableOpacity>
+                    {/* the shout itself → profile */}
+                    <TouchableOpacity
+                      onPress={() => handleViewProfile(u)}
+                      activeOpacity={0.85}
+                      style={{ flex: 1, marginRight: 8 }}>
                       <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 2 }}>
                         <Text style={{ fontSize: 14, fontFamily: 'Fredoka_700Bold', color: COLORS.keylinePurple, marginRight: 6 }}>{u.name}</Text>
                         <Text style={{ fontSize: 12, color: '#999', fontFamily: 'PlusJakartaSans_400Regular' }}>{u.year} · {u.distance} · {u.timeAgo}</Text>
                       </View>
                       <Text style={{ fontSize: 14, color: '#666', fontFamily: 'PlusJakartaSans_400Regular', lineHeight: 20 }}>{u.shout}</Text>
-                    </View>
+                    </TouchableOpacity>
                     <TouchableOpacity
                       onPress={() => { setOpenerUser(u); enterDirections(u); }}
                       style={{ width: 36, height: 36, borderRadius: 8, backgroundColor: COLORS.accentCoral, alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -591,40 +698,145 @@ export default function DiscoverScreen({ navigation, route }: any) {
             </View>
           )}
 
-          {/* ── DISTANCE + ICEBREAKERS SHEETS ──
-              Both are @gorhom BottomSheetModals driven by `mode`; see the effect above.
-              bottomInset lifts them clear of the tab bar. */}
-          <DistanceDrawer
-            bottomSheetModalRef={distanceSheetRef}
-            peer={openerUser as any}
-            bottomInset={TAB_BAR_HEIGHT}
-            routeInfo={routeInfo}
-            isNavigating={mode === 'navigating'}
-            available={visible}
-            onAvatarPress={() => openerUser && handleViewProfile(openerUser)}
-            onChatPress={() => setMode('openers')}
-            onStartPress={() => setMode(mode === 'navigating' ? 'directions' : 'navigating')}
-            onStepsPress={() => {}}
-            onClose={closeDirections}
-            onDismiss={() => {
-              // Only a swipe-down closes the flow; a programmatic dismiss during a
-              // drawer swap has already moved `mode` on.
-              if (mode === 'directions' || mode === 'navigating') closeDirections();
-            }}
-          />
+          {/* ── ICEBREAKERS BOTTOM SHEET ── */}
+          {mode === 'openers' && openerUser && (() => {
+            const peer = openerUser as any;
+            const photoUri = peer.photoUri ?? peer.photo;
+            const fallbackColor = peer.avatarColor ?? peer.color ?? COLORS.accentCoral;
+            const distanceLabel = peer.distance ?? '';
+            const iceBreakers: string[] = Array.isArray(peer.iceBreakers) ? peer.iceBreakers : [];
+            return (
+              <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: COLORS.cream, borderTopLeftRadius: 20, borderTopRightRadius: 20, borderWidth: 2, borderColor: COLORS.keylinePurple, paddingTop: 12, paddingHorizontal: 20, paddingBottom: 20 + drawerPadBottom, zIndex: 20 }}>
+                <View style={{ width: 40, height: 4, backgroundColor: '#DDDDDD', borderRadius: 2, alignSelf: 'center', marginBottom: 16 }} />
+                <View style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: 16 }}>
+                  {/* avatar → opens the full profile */}
+                  <TouchableOpacity onPress={() => handleViewProfile(peer)} activeOpacity={0.85}>
+                    {photoUri ? (
+                      <Image source={{ uri: photoUri }} style={{ width: 56, height: 56, borderRadius: 28, marginRight: 12, borderWidth: 2, borderColor: COLORS.keylinePurple }} />
+                    ) : (
+                      <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: fallbackColor, alignItems: 'center', justifyContent: 'center', marginRight: 12, borderWidth: 2, borderColor: COLORS.keylinePurple }}>
+                        <Text style={{ color: '#FFFFFF', fontFamily: 'Fredoka_700Bold', fontSize: 18 }}>{peer.name.charAt(0)}</Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 20, fontFamily: 'Fredoka_700Bold', color: COLORS.keylinePurple }}>{peer.name}</Text>
+                    <Text style={{ fontSize: 13, color: '#666', fontFamily: 'PlusJakartaSans_400Regular', marginTop: 2 }}>
+                      {peer.year} · {peer.major}
+                    </Text>
+                    <Text style={{ fontSize: 13, color: '#666', fontFamily: 'PlusJakartaSans_400Regular', marginTop: 4 }}>
+                      {visible ? `📍 ${distanceFromYou(distanceLabel)}` : `${LOCKED} Distance`}
+                    </Text>
+                  </View>
+                  {/* drawer toggles — icebreakers is the one you're in */}
+                  <TouchableOpacity
+                    onPress={() => requireAvailable(() => enterDirections(openerUser))}
+                    activeOpacity={0.85}
+                    style={[toggleButton(false), { marginRight: 8 }] as any}>
+                    <DirectionSignIcon size={24} />
+                  </TouchableOpacity>
+                  <View style={[toggleButton(true), { marginRight: 8 }] as any}>
+                    <Image source={ICONS.iceBreaker} style={toggleGlyph(true)} resizeMode="contain" />
+                  </View>
+                  <TouchableOpacity onPress={() => { setMode('default'); setOpenerUser(null); }} style={{ padding: 4 }}>
+                    <Text style={{ fontSize: 18, color: '#999' }}>✕</Text>
+                  </TouchableOpacity>
+                </View>
+                <Text style={{ fontSize: 13, fontFamily: 'Fredoka_700Bold', color: COLORS.keylinePurple, letterSpacing: 1, marginBottom: 10 }}>ICEBREAKERS</Text>
+                {iceBreakers.slice(0, 3).map((breaker, i) => (
+                  <TouchableOpacity key={i} activeOpacity={0.75}
+                    style={{ backgroundColor: '#FFFFFF', borderWidth: 1.5, borderColor: COLORS.keylinePurple, borderRadius: 12, padding: 14, marginBottom: 10 }}>
+                    <Text style={{ fontSize: 14, color: COLORS.keylinePurple, fontFamily: 'PlusJakartaSans_400Regular', lineHeight: 22 }}>{breaker}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            );
+          })()}
 
-          <IceBreakersDrawer
-            bottomSheetModalRef={iceBreakersSheetRef}
-            peer={openerUser as any}
-            bottomInset={TAB_BAR_HEIGHT}
-            available={visible}
-            onAvatarPress={() => openerUser && handleViewProfile(openerUser)}
-            onDirectionsPress={() => requireAvailable(() => enterDirections(openerUser))}
-            onClose={() => { setMode('default'); setOpenerUser(null); }}
-            onDismiss={() => {
-              if (mode === 'openers') { setMode('default'); setOpenerUser(null); }
-            }}
-          />
+          {/* ── DIRECTIONS BOTTOM SHEET ── */}
+          {(mode === 'directions' || mode === 'navigating') && (() => {
+            const peer = openerUser as any;
+            const photoUri = peer?.photoUri ?? peer?.photo;
+            const fallbackColor = peer?.avatarColor ?? peer?.color ?? COLORS.accentCoral;
+            const distanceLabel = peer?.distance ?? '';
+            const isNavigating = mode === 'navigating';
+            // TEMP DIAGNOSTIC — console.log so it lands in the Metro log without
+            // throwing a LogBox overlay over the drawer being inspected.
+            console.log(
+              '[dbg] directions drawer:',
+              JSON.stringify({
+                visible,
+                rawDistance: peer?.distance ?? null,
+                rendered: distanceFromYou(distanceLabel),
+                hasLatLng: !!(peer?.lat && peer?.lng),
+              })
+            );
+            return (
+              <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: COLORS.cream, borderTopLeftRadius: 20, borderTopRightRadius: 20, borderWidth: 2, borderColor: COLORS.keylinePurple, paddingTop: 12, paddingHorizontal: 20, paddingBottom: 20 + drawerPadBottom, zIndex: 20 }}>
+                <View style={{ width: 40, height: 4, backgroundColor: '#DDDDDD', borderRadius: 2, alignSelf: 'center', marginBottom: 16 }} />
+                {openerUser && (
+                  <View style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: 20 }}>
+                    {/* avatar → opens the full profile */}
+                    <TouchableOpacity onPress={() => handleViewProfile(peer)} activeOpacity={0.85}>
+                      {photoUri ? (
+                        <Image source={{ uri: photoUri }} style={{ width: 56, height: 56, borderRadius: 28, marginRight: 12, borderWidth: 2, borderColor: COLORS.keylinePurple }} />
+                      ) : (
+                        <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: fallbackColor, alignItems: 'center', justifyContent: 'center', marginRight: 12, borderWidth: 2, borderColor: COLORS.keylinePurple }}>
+                          <Text style={{ color: '#FFFFFF', fontFamily: 'Fredoka_700Bold', fontSize: 18 }}>{peer.name.charAt(0)}</Text>
+                        </View>
+                      )}
+                    </TouchableOpacity>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 20, fontFamily: 'Fredoka_700Bold', color: COLORS.keylinePurple }}>{peer.name}</Text>
+                      <Text style={{ fontSize: 13, color: '#666', fontFamily: 'PlusJakartaSans_400Regular', marginTop: 2 }}>
+                        {peer.year} · {peer.major}
+                      </Text>
+                      <Text style={{ fontSize: 13, color: '#666', fontFamily: 'PlusJakartaSans_400Regular', marginTop: 4 }}>
+                        {visible ? `📍 ${distanceFromYou(distanceLabel)}` : `${LOCKED} Distance`}
+                      </Text>
+                      {routeInfo && (
+                        <Text style={{ fontSize: 13, color: COLORS.accentCoral, fontFamily: 'Fredoka_700Bold', marginTop: 4 }}>
+                          {routeInfo.duration.toFixed(0)} min walk · {(routeInfo.distance * 1000).toFixed(0)}m
+                        </Text>
+                      )}
+                    </View>
+                    {/* drawer toggles — directions is the one you're in */}
+                    <View style={[toggleButton(true), { marginRight: 8 }] as any}>
+                      <DirectionSignIcon size={24} inverted />
+                    </View>
+                    <TouchableOpacity
+                      onPress={() => setMode('openers')}
+                      activeOpacity={0.85}
+                      style={[toggleButton(false), { marginRight: 8 }] as any}>
+                      <Image source={ICONS.iceBreaker} style={toggleGlyph(false)} resizeMode="contain" />
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={closeDirections} style={{ padding: 4 }}>
+                      <Text style={{ fontSize: 22, color: '#999' }}>×</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+                <View style={{ flexDirection: 'row', gap: 12 }}>
+                  <TouchableOpacity
+                    onPress={() => (isNavigating ? stopNavigating(peer) : startNavigating(peer))}
+                    style={{
+                      flex: 1, height: 52, borderRadius: 100,
+                      backgroundColor: isNavigating ? COLORS.keylinePurple : COLORS.accentCoral,
+                      borderWidth: 2.5, borderColor: COLORS.keylinePurple,
+                      flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+                      boxShadow: '3px 3px 0px rgba(32,22,66,0.18)',
+                    } as any}>
+                    <Text style={{ fontSize: 16, color: '#FFFFFF' }}>{isNavigating ? '■' : '▲'}</Text>
+                    <Text style={{ color: '#FFFFFF', fontSize: 15, fontFamily: 'Fredoka_700Bold' }}>{isNavigating ? 'Stop' : 'Start'}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={{ flex: 1, height: 52, borderRadius: 100, backgroundColor: '#FFFFFF', borderWidth: 2, borderColor: COLORS.keylinePurple, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                    <Text style={{ fontSize: 16 }}>☰</Text>
+                    <Text style={{ color: COLORS.keylinePurple, fontSize: 15, fontFamily: 'Fredoka_700Bold' }}>Steps</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            );
+          })()}
 
         </View>
 

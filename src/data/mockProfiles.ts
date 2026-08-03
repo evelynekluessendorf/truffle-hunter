@@ -24,14 +24,38 @@ const ring = () => AVATAR_RING.map((uri, i) => ({ id: String(i), avatar: { uri }
 export const heroUrl = (url: string) =>
   `${url.split('?')[0]}?auto=format&fit=crop&w=1200&h=1200&q=100`;
 
-/** Generate social handles from a display name. */
+/** Stable per-name seed, so a given person always gets the same handles. */
+const seed = (s: string) => [...s].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7);
+
+/**
+ * Generate social handles from a display name.
+ * Each platform draws from its own set of naming styles, so nobody reuses
+ * the same handle across all four — people rarely do.
+ */
 export const socialsFor = (name: string): Record<string, string> => {
-  const handle = name.trim().toLowerCase().replace(/\s+/g, '');
+  const first = name.trim().toLowerCase().split(/\s+/)[0].replace(/[^a-z]/g, '');
+  const n = seed(first);
+  const num = 10 + (n % 89); // 10–98
+
+  const pick = (styles: string[], shift: number) => styles[(n >> shift) % styles.length];
+
   return {
-    instagram: `https://instagram.com/${handle}`,
-    tiktok: `https://tiktok.com/@${handle}`,
-    x: `https://x.com/${handle}`,
-    facebook: `https://facebook.com/${handle}`,
+    instagram: `https://instagram.com/${pick(
+      [`${first}.${num}`, `its.${first}`, `${first}.daily`, `${first}.jpg`],
+      0
+    )}`,
+    tiktok: `https://tiktok.com/@${pick(
+      [`${first}${num}`, `${first}.irl`, `not${first}`, `${first}.tok`],
+      3
+    )}`,
+    x: `https://x.com/${pick(
+      [`${first}_${num}`, `${first}says`, `real${first}`, `${first}_hq`],
+      6
+    )}`,
+    facebook: `https://facebook.com/${pick(
+      [`${first}.official`, `${first}.${num}`, `${first}.online`, `${first}.page`],
+      9
+    )}`,
   };
 };
 
@@ -51,10 +75,10 @@ export const MOCK_PROFILES: ProfileData[] = [
       'I have memorised pi to 50 decimal places',
     ],
     socialMedia: {
-      instagram: 'https://instagram.com/amysmith',
-      tiktok: 'https://tiktok.com/@amysmith',
-      x: 'https://x.com/amysmith',
-      facebook: 'https://facebook.com/amysmith',
+      instagram: 'https://instagram.com/amy.in.focus',
+      tiktok: 'https://tiktok.com/@pancakerobot',
+      x: 'https://x.com/amysmith_pt',
+      facebook: 'https://facebook.com/amy.smith.94',
     },
   },
   {
@@ -73,10 +97,10 @@ export const MOCK_PROFILES: ProfileData[] = [
       'I once debugged code that stumped a senior engineer',
     ],
     socialMedia: {
-      instagram: 'https://instagram.com/marcusjones',
-      tiktok: 'https://tiktok.com/@marcusjones',
-      x: 'https://x.com/marcusjones',
-      facebook: 'https://facebook.com/marcusjones',
+      instagram: 'https://instagram.com/marcus.builds',
+      tiktok: 'https://tiktok.com/@debugdiaries',
+      x: 'https://x.com/mjones_dev',
+      facebook: 'https://facebook.com/marcus.jones.dev',
     },
   },
   {
@@ -97,9 +121,9 @@ export const MOCK_PROFILES: ProfileData[] = [
     ],
     // Deliberately only 3 links — no TikTok, to exercise a varying count.
     socialMedia: {
-      instagram: 'https://instagram.com/sophiebrown',
-      x: 'https://x.com/sophiebrown',
-      facebook: 'https://facebook.com/sophiebrown',
+      instagram: 'https://instagram.com/sophie.sees',
+      x: 'https://x.com/sophie_reads',
+      facebook: 'https://facebook.com/sophie.brown.7',
     },
   },
 ];
