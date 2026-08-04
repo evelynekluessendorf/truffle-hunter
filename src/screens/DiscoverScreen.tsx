@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, Image, Modal } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+import MapView, { Marker, Overlay, PROVIDER_GOOGLE } from 'react-native-maps';
 import MapViewDirections from 'react-native-maps-directions';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { FOREST_MAP_STYLE, STANDARD_MAP_STYLE } from '../theme/forestMapStyle';
 import { useTabBarStyle } from '../navigation/TabNavigator';
 import { useUser } from '../context/UserContext';
 import { DEFAULT_PROFILE } from '../data/mockProfiles';
@@ -26,7 +28,26 @@ const ICONS = {
   filter: require('../assets/icons/Filter.png'),
   hangouts: require('../assets/icons/Hangouts.png'),
   iceBreaker: require('../assets/icons/Ice Breaker.png'),
+  mapToggle: require('../assets/icons/map toggle.png'),
 };
+
+type MapStyleName = 'forest' | 'standard';
+const MAP_STYLE_KEY = '@truffle/mapStyle';
+
+/** Map avatars: hard drop shadow, offset 2/4, keyline purple at 85%. */
+const AVATAR_SHADOW = '2px 4px 0px rgba(32,22,66,0.85)';
+
+/** Segmented toggle geometry, from the asset: 124×280 with its divider 46% down. */
+const TOGGLE_W = 44;
+const TOGGLE_H = Math.round(TOGGLE_W * (280 / 124)); // 99
+const TOGGLE_SPLIT = Math.round(TOGGLE_H * 0.46);    // 46
+
+/**
+ * Foliage-only cut of the illustration — its flat land, road bands and street
+ * labels are transparent, so the styled map reads through and nothing repeats
+ * that would give the tiling away (repeated "Pine St" would).
+ */
+const FOREST_FOLIAGE = require('../assets/Screens/Map/forest-overlay.png');
 
 const MAJORS = [
   'Biology',
@@ -48,6 +69,37 @@ const CONVO_COUNTS: Record<string, number> = {
 const YOU_COORD = { latitude: 37.7760, longitude: -122.4190 };
 
 /**
+ * One tile of foliage, sized so the artwork's 1548×2496 aspect holds on the
+ * ground (1° lng ≈ 88 km at this latitude vs 1° lat ≈ 111 km).
+ */
+const FOREST_TILE_LAT = 0.0179;
+const FOREST_TILE_LNG = 0.0140;
+
+/**
+ * A 5×5 grid of those tiles around YOU_COORD — roughly 10 km × 6 km — so the
+ * forest keeps going as you zoom out instead of stopping at a visible edge.
+ * Built once at module load; the map culls whatever is off-screen.
+ */
+const FOREST_TILES: { key: string; bounds: [[number, number], [number, number]] }[] = (() => {
+  const tiles: { key: string; bounds: [[number, number], [number, number]] }[] = [];
+  const RING = 2;
+  for (let i = -RING; i <= RING; i++) {
+    for (let j = -RING; j <= RING; j++) {
+      const cLat = 37.7760 + i * FOREST_TILE_LAT;
+      const cLng = -122.4190 + j * FOREST_TILE_LNG;
+      tiles.push({
+        key: `${i}:${j}`,
+        bounds: [
+          [cLat - FOREST_TILE_LAT / 2, cLng - FOREST_TILE_LNG / 2],
+          [cLat + FOREST_TILE_LAT / 2, cLng + FOREST_TILE_LNG / 2],
+        ],
+      });
+    }
+  }
+  return tiles;
+})();
+
+/**
  * Normalises the stored distance to the drawer's phrasing. The value arrives in
  * two shapes: "320m" straight off a map pin, or "320m away" when it came back
  * through a profile via Say Hi. Both render as "320m from you".
@@ -55,6 +107,43 @@ const YOU_COORD = { latitude: 37.7760, longitude: -122.4190 };
 const distanceFromYou = (raw?: string) => {
   const m = String(raw ?? '').match(/([\d.]+\s*[a-zA-Z]+)/);
   return m ? `${m[1]} from you` : '';
+};
+
+/**
+ * Turn someone's unknown fact into something you could actually say to them.
+ * Facts are always written first person ("I once…"), so flipping the pronouns
+ * gives a clause that drops into an opener frame.
+ */
+const toSecondPerson = (fact: string) =>
+  fact
+    .replace(/\bI'm\b/g, "you're")
+    .replace(/\bI am\b/g, 'you are')
+    .replace(/\bI was\b/g, 'you were')
+    .replace(/\bI've\b/g, "you've")
+    .replace(/\bI'd\b/g, "you'd")
+    .replace(/\bI\b/g, 'you')
+    .replace(/\bmyself\b/g, 'yourself')
+    .replace(/\bmy\b/g, 'your')
+    .replace(/\bme\b/g, 'you');
+
+const capitalise = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+const STARTER_FRAMES: ((clause: string) => string)[] = [
+  c => `Okay, I have to ask — ${c}?`,
+  c => `Wait, ${c}? You're going to have to explain that one.`,
+  c => `So ${c} — how did that happen?`,
+  c => `${capitalise(c)}? There has to be a story there.`,
+  c => `I need the details on this one: ${c}?`,
+];
+
+/**
+ * Seeded on the person, then stepped by index — so one profile's openers walk
+ * through distinct frames instead of repeating "Wait…" three times, and the
+ * same person always gets the same set.
+ */
+const starterFrom = (fact: string, i: number, who: string) => {
+  const h = [...who].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7);
+  return STARTER_FRAMES[(h + i) % STARTER_FRAMES.length](toSecondPerson(fact));
 };
 
 type Coord = { latitude: number; longitude: number };
@@ -74,8 +163,11 @@ const bearingBetween = (from: Coord, to: Coord) => {
 const INITIAL_REGION = {
   latitude: YOU_COORD.latitude,
   longitude: YOU_COORD.longitude,
-  latitudeDelta: 0.008,
-  longitudeDelta: 0.008,
+  // Wider opening view — 2.5× the previous 0.008 span, so every peer is on
+  // screen at once with margin rather than filling the frame edge to edge.
+  // Pinch to zoom still works normally from here.
+  latitudeDelta: 0.02,
+  longitudeDelta: 0.02,
 };
 
 const USERS = [
@@ -91,7 +183,7 @@ const USERS = [
     lat: 37.7772, lng: -122.4228,
     photo: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&q=80',
     hasShout: true, shout: "Anyone taken Prof. Miller before? How's the final?", timeAgo: '4 min ago',
-    iceBreakers: ['I once won a contest I didn\'t mean to enter', 'I wrote a musical in high school that got performed', 'I have been to 14 countries but never left my home continent until this year'],
+    iceBreakers: ['I once won a contest I didn\'t mean to enter', 'I wrote a musical in high school that got performed', 'I have been to 14 countries but never left my home continent until this year', 'I busked in three cities to pay for a summer abroad', 'I can usually name a song from its first two notes'],
     interests: ['Music', 'Travel', 'Business'],
   },
   {
@@ -99,7 +191,7 @@ const USERS = [
     lat: 37.7788, lng: -122.4198,
     photo: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&q=80',
     hasShout: true, shout: "Does anyone want to grab coffee at the student union? I'll be there till 3pm", timeAgo: '9 min ago',
-    iceBreakers: ['I once ran into my professor at a party and outdanced them', 'I can identify 40 bird calls by sound', 'I have read the full terms and conditions of every app I\'ve downloaded'],
+    iceBreakers: ['I once ran into my professor at a party and outdanced them', 'I can identify 40 bird calls by sound', 'I have read the full terms and conditions of every app I\'ve downloaded', 'I have filled six dream journals since I was fourteen'],
     interests: ['Psychology', 'Nature', 'Reading'],
   },
   {
@@ -107,7 +199,7 @@ const USERS = [
     lat: 37.7755, lng: -122.4232,
     photo: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150&q=80',
     hasShout: true, shout: 'Lost my green hoodie somewhere near the library — anyone seen it?', timeAgo: '12 min ago',
-    iceBreakers: ['I once woke up in a different country than I fell asleep in', 'I can solve differential equations in my head', 'I have never watched a single episode of Friends'],
+    iceBreakers: ['I once woke up in a different country than I fell asleep in', 'I can solve differential equations in my head', 'I have never watched a single episode of Friends', 'I named a lab rat after my high school chemistry teacher', 'I once set off the fire alarm trying to make caramel', 'I can guess a drink\'s strength by smell alone'],
     interests: ['Science', 'Travel', 'Gaming'],
   },
   {
@@ -122,7 +214,7 @@ const USERS = [
     id: '6', name: 'Alex', initial: 'A', color: COLORS.accentCoral, year: 'Junior', major: 'Engineering', distance: '250m',
     lat: 37.7740, lng: -122.4202,
     photo: 'https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?w=150&q=80',
-    iceBreakers: ['I built a robot that makes pancakes', 'I once cycled across an entire country in a week', 'I have memorised pi to 50 decimal places'],
+    iceBreakers: ['I built a robot that makes pancakes', 'I once cycled across an entire country in a week', 'I have memorised pi to 50 decimal places', 'I run before sunrise every morning, including in the snow'],
     interests: ['Tech', 'Running', 'Food'],
   },
   {
@@ -130,7 +222,7 @@ const USERS = [
     lat: 37.7762, lng: -122.4160,
     photo: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&q=80',
     hasShout: true, shout: 'Looking for someone to visit the new exhibit at the campus gallery this weekend — free entry on Saturday', timeAgo: '22 min ago',
-    iceBreakers: ['I once accidentally walked into a film set and ended up as an extra', 'I collect vintage maps', 'I have never eaten a hamburger'],
+    iceBreakers: ['I once accidentally walked into a film set and ended up as an extra', 'I collect vintage maps', 'I have never eaten a hamburger', 'I can date a painting to the decade from its frame alone', 'I have seen the same film in four different countries'],
     interests: ['Art', 'Film', 'Travel'],
   },
   {
@@ -181,6 +273,23 @@ export default function DiscoverScreen({ navigation, route }: any) {
   const LOCKED = '🔒';
   const [mapSize, setMapSize] = useState({ width: 0, height: 0 });
   const [region, setRegion] = useState(INITIAL_REGION);
+
+  // Forest View is the default; the choice is restored from disk on mount.
+  // Only `customMapStyle` changes, so the camera is untouched when toggling.
+  const [mapStyleName, setMapStyleName] = useState<MapStyleName>('forest');
+  useEffect(() => {
+    AsyncStorage.getItem(MAP_STYLE_KEY)
+      .then(saved => {
+        if (saved === 'forest' || saved === 'standard') setMapStyleName(saved);
+      })
+      .catch(() => {}); // first run / storage unavailable — keep the default
+  }, []);
+  const selectMapStyle = (next: MapStyleName) => {
+    if (next === mapStyleName) return;
+    setMapStyleName(next);
+    AsyncStorage.setItem(MAP_STYLE_KEY, next).catch(() => {});
+  };
+  const isForest = mapStyleName === 'forest';
 
   // A drawer covers the tab bar rather than sitting above it. A tab screen
   // can't paint over its own navigator's tab bar, so the bar is hidden while
@@ -234,6 +343,35 @@ export default function DiscoverScreen({ navigation, route }: any) {
       );
     }, 300);
   };
+
+  /** Frames you plus every peer, with breathing room at the edges. */
+  const fitAllPeers = () => {
+    mapRef.current?.fitToCoordinates(
+      [YOU_COORD, ...USERS.map(u => ({ latitude: u.lat, longitude: u.lng }))],
+      { edgePadding: { top: 80, right: 50, bottom: 80, left: 50 }, animated: true }
+    );
+  };
+
+  /**
+   * Frame everyone once, on first landing.
+   *
+   * onMapReady alone isn't enough: it can fire before the map has been laid
+   * out, and fitToCoordinates against a zero-sized map silently does nothing.
+   * Waiting for a measured mapSize as well means the fit always has real
+   * dimensions to work with.
+   *
+   * Skipped when arriving via Say Hi — enterDirections is already framing you
+   * and that one peer, and two fits would fight.
+   */
+  const [mapReady, setMapReady] = useState(false);
+  const didInitialFit = useRef(false);
+  useEffect(() => {
+    if (didInitialFit.current || !mapReady || mapSize.width === 0) return;
+    didInitialFit.current = true;
+    if (openOpeners) return;
+    const t = setTimeout(fitAllPeers, 250);
+    return () => clearTimeout(t);
+  }, [mapReady, mapSize.width, openOpeners]);
 
   /**
    * Start → navigation camera: close in on you, tilt, and face the destination
@@ -331,17 +469,24 @@ export default function DiscoverScreen({ navigation, route }: any) {
   // Project the tapped pin's coordinate to screen space synchronously, so the popup
   // renders glued to the pin on the very same frame as the tap (no native round-trip).
   // Linear projection is exact enough at these zoom deltas (<1km span).
-  const popupPosition = useMemo(() => {
-    if (!popupUser || mode !== 'default' || mapSize.width === 0) return null;
-    const { driftLat, driftLng } = getDrift(popupUser, tick, true);
-    const lat = popupUser.lat + driftLat;
-    const lng = popupUser.lng + driftLng;
+  /**
+   * lat/lng → screen point inside the map container. Used for the pin popup in
+   * both modes, and in Forest View for the pins and route themselves, since
+   * there's no MapView to place native markers.
+   */
+  const project = (lat: number, lng: number) => {
     const west = region.longitude - region.longitudeDelta / 2;
     const north = region.latitude + region.latitudeDelta / 2;
     return {
       x: ((lng - west) / region.longitudeDelta) * mapSize.width,
       y: ((north - lat) / region.latitudeDelta) * mapSize.height,
     };
+  };
+
+  const popupPosition = useMemo(() => {
+    if (!popupUser || mode !== 'default' || mapSize.width === 0) return null;
+    const { driftLat, driftLng } = getDrift(popupUser, tick, true);
+    return project(popupUser.lat + driftLat, popupUser.lng + driftLng);
   }, [popupUser, tick, mode, region, mapSize]);
 
   const handleViewProfile = (user: typeof USERS[0]) => {
@@ -465,12 +610,22 @@ export default function DiscoverScreen({ navigation, route }: any) {
           <MapView
             ref={mapRef}
             provider={PROVIDER_GOOGLE}
+            customMapStyle={isForest ? FOREST_MAP_STYLE : STANDARD_MAP_STYLE}
             style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
             initialRegion={INITIAL_REGION}
+            onMapReady={() => setMapReady(true)}
             onRegionChange={setRegion}
             onRegionChangeComplete={setRegion}
             showsUserLocation={false}
             showsMyLocationButton={false}>
+
+            {/* Forest foliage, tiled across the whole area so the look holds at
+                any zoom. Declared before the markers so avatars, the route and
+                every control draw on top. The styled map underneath supplies the
+                cream land, beige roads and purple labels at every zoom level. */}
+            {isForest && FOREST_TILES.map(t => (
+              <Overlay key={t.key} image={FOREST_FOLIAGE} bounds={t.bounds} />
+            ))}
 
             {/* User markers */}
             {(mode === 'default' || mode === 'openers' || mode === 'directions' || mode === 'navigating') && filteredUsers.map((user) => {
@@ -486,37 +641,42 @@ export default function DiscoverScreen({ navigation, route }: any) {
                     if (mode !== 'default') return;
                     setPopupUser(popupUser?.id === user.id ? null : user);
                   }}>
-                  <View style={{
-                    width: size, height: size, borderRadius: size / 2,
-                    backgroundColor: '#FFFFFF',
-                    alignItems: 'center', justifyContent: 'center',
-                    borderWidth: isSelected ? 4 : 2,
-                    borderColor: popupUser?.id === user.id && mode === 'default' ? COLORS.accentCoral : COLORS.keylinePurple,
-                    shadowColor: COLORS.keylinePurple, shadowOpacity: isSelected ? 0.3 : 0, shadowRadius: 8,
-                    elevation: isSelected ? 6 : 2,
-                    overflow: 'hidden',
-                  }}>
-                    <Image source={{ uri: user.photo }} style={{ width: '100%', height: '100%' }} />
+                  {/* shadow sits on the outer view — the inner one clips the photo
+                      to a circle, and overflow:hidden would swallow the shadow */}
+                  <View style={{ width: size, height: size, borderRadius: size / 2, boxShadow: AVATAR_SHADOW } as any}>
+                    <View style={{
+                      width: '100%', height: '100%', borderRadius: size / 2,
+                      backgroundColor: '#FFFFFF',
+                      alignItems: 'center', justifyContent: 'center',
+                      borderWidth: isSelected ? 4 : 2,
+                      borderColor: '#FFFFFF',
+                      overflow: 'hidden',
+                    }}>
+                      <Image source={{ uri: user.photo }} style={{ width: '100%', height: '100%' }} />
+                    </View>
                   </View>
                 </Marker>
               );
             })}
 
-            {/* You marker — same photo treatment as everyone else, coral ring to stand out */}
+            {/* You marker — coral ring, so you read as distinct from the white-ringed peers */}
             <Marker coordinate={YOU_COORD} anchor={{ x: 0.5, y: 0.5 }}>
-              <View style={{
-                width: mode === 'default' ? 48 : 54,
-                height: mode === 'default' ? 48 : 54,
-                borderRadius: 27,
-                backgroundColor: '#FFFFFF',
-                alignItems: 'center', justifyContent: 'center',
-                borderWidth: mode === 'default' ? 3 : 4, borderColor: COLORS.accentCoral,
-                shadowColor: COLORS.keylinePurple, shadowOpacity: 0.3, shadowRadius: 8,
-                elevation: 6,
-                overflow: 'hidden',
-              }}>
-                <Image source={myAvatar} style={{ width: '100%', height: '100%' }} />
-              </View>
+              {(() => {
+                const size = mode === 'default' ? 48 : 54;
+                return (
+                  <View style={{ width: size, height: size, borderRadius: size / 2, boxShadow: AVATAR_SHADOW } as any}>
+                    <View style={{
+                      width: '100%', height: '100%', borderRadius: size / 2,
+                      backgroundColor: '#FFFFFF',
+                      alignItems: 'center', justifyContent: 'center',
+                      borderWidth: mode === 'default' ? 3 : 4, borderColor: COLORS.accentCoral,
+                      overflow: 'hidden',
+                    }}>
+                      <Image source={myAvatar} style={{ width: '100%', height: '100%' }} />
+                    </View>
+                  </View>
+                );
+              })()}
             </Marker>
 
             {/* Walking directions route */}
@@ -574,6 +734,44 @@ export default function DiscoverScreen({ navigation, route }: any) {
                 <Text style={{ fontSize: 10, fontFamily: 'Fredoka_700Bold', color: '#FFFFFF' }}>{USERS.filter(u => u.hasShout).length}</Text>
               </View>
             )}
+
+            {/* ── MAP STYLE TOGGLE — the segmented pill asset: map on top
+                (Standard), truffle below (Forest). The artwork's divider sits
+                46% down, so the tap zones and the active tint split there.
+                Only customMapStyle + the ground overlay change, so the camera
+                is never reset. ── */}
+            <View
+              style={{
+                marginTop: 10,
+                width: TOGGLE_W, height: TOGGLE_H, borderRadius: 14,
+                overflow: 'hidden',
+                boxShadow: '2px 2px 0px rgba(32,22,66,0.15)',
+              } as any}>
+              <Image source={ICONS.mapToggle} style={{ width: TOGGLE_W, height: TOGGLE_H }} resizeMode="contain" />
+              {/* active segment */}
+              <View
+                pointerEvents="none"
+                style={{
+                  position: 'absolute', left: 0, right: 0,
+                  top: isForest ? TOGGLE_SPLIT : 0,
+                  height: isForest ? TOGGLE_H - TOGGLE_SPLIT : TOGGLE_SPLIT,
+                  backgroundColor: COLORS.accentCoral,
+                  opacity: 0.28,
+                }}
+              />
+              <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel="Standard Map"
+                onPress={() => selectMapStyle('standard')}
+                style={{ position: 'absolute', top: 0, left: 0, right: 0, height: TOGGLE_SPLIT }}
+              />
+              <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel="Forest View"
+                onPress={() => selectMapStyle('forest')}
+                style={{ position: 'absolute', top: TOGGLE_SPLIT, left: 0, right: 0, bottom: 0 }}
+              />
+            </View>
           </View>
 
           {/* ── PIN POPUP — dynamically positioned to stay glued to the tapped pin ── */}
@@ -743,10 +941,11 @@ export default function DiscoverScreen({ navigation, route }: any) {
                   </TouchableOpacity>
                 </View>
                 <Text style={{ fontSize: 13, fontFamily: 'Fredoka_700Bold', color: COLORS.keylinePurple, letterSpacing: 1, marginBottom: 10 }}>ICEBREAKERS</Text>
-                {iceBreakers.slice(0, 3).map((breaker, i) => (
+                {iceBreakers.map((breaker, i) => (
                   <TouchableOpacity key={i} activeOpacity={0.75}
                     style={{ backgroundColor: '#FFFFFF', borderWidth: 1.5, borderColor: COLORS.keylinePurple, borderRadius: 12, padding: 14, marginBottom: 10 }}>
-                    <Text style={{ fontSize: 14, color: COLORS.keylinePurple, fontFamily: 'PlusJakartaSans_400Regular', lineHeight: 22 }}>{breaker}</Text>
+                    {/* the opener, not the raw fact — the fact itself lives on their profile */}
+                    <Text style={{ fontSize: 14, color: COLORS.keylinePurple, fontFamily: 'PlusJakartaSans_400Regular', lineHeight: 22 }}>{starterFrom(breaker, i, peer.name)}</Text>
                   </TouchableOpacity>
                 ))}
               </View>

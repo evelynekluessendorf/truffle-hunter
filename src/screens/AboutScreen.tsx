@@ -20,22 +20,63 @@ const COLORS = {
 const progressTrack = 'rgba(255,107,53,0.25)';
 
 const { width: screenWidth } = Dimensions.get('window');
-const PIG_ASPECT = 858 / 942;
-const pigWidth = screenWidth * 0.6;
-const pigHeight = pigWidth * PIG_ASPECT;
 
-const STEPS = [
-  { title: 'Create your profile', body: 'Tell people who you are' },
-  { title: 'Share fun facts', body: 'This will help people start talking. Everybody has fun facts!' },
-  { title: 'Go visible', body: "Signal you're open to meeting" },
-  { title: "See who's nearby", body: 'Browse people actually around you' },
-  { title: 'Get a starter & connect', body: 'We crack the ice, you take it from there. Bye.' },
+/** Illustration sizing, per asset aspect. */
+const pigWidth = screenWidth * 0.6;
+
+type Line = { text: string; pig?: boolean };
+
+/** The three onboarding beats. `pig` lines are the truffle pig's asides. */
+const PAGES: { title: string; lines: Line[]; cta: string }[] = [
+  {
+    title: 'Welcome to Truffle Hunter',
+    lines: [
+      { text: 'Some things are worth looking for.' },
+      { text: 'A great coffee.' },
+      { text: 'A four-leaf clover.' },
+      { text: '“A truffle!” 🐽.', pig: true },
+      { text: 'A conversation that makes your day.' },
+      { text: "Let's go find one." },
+    ],
+    cta: 'Next →',
+  },
+  {
+    title: "Here's the deal.",
+    lines: [
+      { text: "I'll help you find interesting people." },
+      { text: 'You do the saying hello.' },
+      { text: '🐽 "Fair trade, right?"', pig: true },
+      { text: 'Turn yourself visible.' },
+      { text: "See who's around." },
+      { text: 'Walk over.' },
+      { text: 'The rest is up to you' },
+    ],
+    cta: 'Next →',
+  },
+  {
+    title: 'Listen for the oink.',
+    lines: [
+      { text: 'When you get close… oink! You’ll both hear it.' },
+      { text: '🐽 "That\'s my cue to leave."', pig: true },
+      { text: 'Now put the phone away.' },
+      { text: 'Bye' },
+    ],
+    cta: 'Start Hunting →',
+  },
+];
+
+/** One illustration per page, sized from its own aspect ratio. */
+const ART = [
+  { source: require('../assets/illustrations/About 1.png'), aspect: 701 / 830 },
+  null, // page 2 is copy-only, as before
+  { source: require('../assets/illustrations/sleeping-pig.png'), aspect: 1026 / 968 },
 ];
 
 export default function AboutScreen({ navigation }: any) {
   const insets = useSafeAreaInsets();
   const [page, setPage] = useState(0);
   const scrollRef = useRef<ScrollView>(null);
+  const lastPage = PAGES.length - 1;
 
   const goToPage = (index: number) => {
     scrollRef.current?.scrollTo({ x: index * screenWidth, animated: true });
@@ -48,12 +89,12 @@ export default function AboutScreen({ navigation }: any) {
 
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.cream }}>
-      {/* Progress — halves on the first page, full on the second */}
+      {/* Progress — fills a third at a time across the three pages */}
       <View style={{ paddingTop: insets.top + 8, paddingHorizontal: 24, alignItems: 'center' }}>
         <View style={{ width: '55%', height: 3, backgroundColor: progressTrack, borderRadius: 2 }}>
           <View
             style={{
-              width: page === 0 ? '50%' : '100%',
+              width: `${((page + 1) / PAGES.length) * 100}%`,
               height: 3,
               backgroundColor: COLORS.accentCoral,
               borderRadius: 2,
@@ -70,80 +111,49 @@ export default function AboutScreen({ navigation }: any) {
         onMomentumScrollEnd={handleMomentumScrollEnd}
         style={{ flex: 1 }}>
 
-        {/* ── PAGE 1 — what it is ── */}
-        <View style={{ width: screenWidth }}>
-          <ScrollView
-            contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 24, paddingTop: 24, paddingBottom: 16 }}
-            showsVerticalScrollIndicator={false}>
+        {PAGES.map((p, i) => {
+          const art = ART[i];
+          return (
+            <View key={i} style={{ width: screenWidth }}>
+              <ScrollView
+                contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 24, paddingTop: 24, paddingBottom: 16 }}
+                showsVerticalScrollIndicator={false}>
 
-            <Text style={{ fontSize: 44, fontFamily: 'Fredoka_700Bold', color: COLORS.keylinePurple, marginBottom: 8 }}>
-              What's Truffle Hunter?
-            </Text>
-            <View style={{ height: 2, backgroundColor: COLORS.accentCoral, marginBottom: 24 }} />
-
-            <View style={{ marginBottom: 24 }}>
-              <Text style={{ fontSize: 18, fontFamily: 'Fredoka_700Bold', color: COLORS.keylinePurple, marginBottom: 8 }}>
-                A way to meet people
-              </Text>
-              <Text style={{ fontSize: 14, fontFamily: 'PlusJakartaSans_400Regular', color: '#666', lineHeight: 20 }}>
-                Without the fear of rejection or awkward hello. No swiping, no algorithm, no matching. But hey, also no messaging and no feeds. Let go of that phone! When you're visible, everyone nearby knows you're game, so don't let anyone down.
-              </Text>
-            </View>
-
-            <View style={{ marginBottom: 24 }}>
-              <Text style={{ fontSize: 18, fontFamily: 'Fredoka_700Bold', color: COLORS.keylinePurple, marginBottom: 8 }}>
-                A helping hand with the hello
-              </Text>
-              <Text style={{ fontSize: 14, fontFamily: 'PlusJakartaSans_400Regular', color: '#666', lineHeight: 20 }}>
-                We provide the conversation starter so you can focus on the real connection that follows.
-              </Text>
-            </View>
-
-            <View style={{ flex: 1, alignItems: 'flex-start', justifyContent: 'center', minHeight: 220 }}>
-              <Text style={{ fontSize: 18, fontFamily: 'Fredoka_700Bold', color: COLORS.keylinePurple, marginBottom: 8 }}>
-                That's it! Get that oinc!
-              </Text>
-              <Image
-                source={require('../assets/illustrations/About 1.png')}
-                style={{ width: pigWidth, height: pigHeight }}
-                resizeMode="contain"
-              />
-            </View>
-          </ScrollView>
-        </View>
-
-        {/* ── PAGE 2 — how it works ── */}
-        <View style={{ width: screenWidth }}>
-          <ScrollView
-            contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 24, paddingTop: 24 }}
-            showsVerticalScrollIndicator={false}>
-
-            <Text
-              style={{
-                fontSize: 34, fontFamily: 'Fredoka_700Bold', color: COLORS.keylinePurple,
-                textAlign: 'center', marginBottom: 24,
-              }}>
-              How it works
-            </Text>
-
-            {STEPS.map((step, i) => (
-              <View key={i} style={{ marginBottom: 20 }}>
-                <Text style={{ fontSize: 20, fontFamily: 'Fredoka_700Bold', color: COLORS.keylinePurple, marginBottom: 4 }}>
-                  {step.title}
+                <Text style={{ fontSize: 44, fontFamily: 'Fredoka_700Bold', color: COLORS.keylinePurple, marginBottom: 8 }}>
+                  {p.title}
                 </Text>
-                <Text
-                  style={{
-                    fontSize: 16, fontFamily: 'PlusJakartaSans_400Regular',
-                    color: COLORS.keylinePurple, lineHeight: 24,
-                  }}>
-                  {step.body}
-                </Text>
-              </View>
-            ))}
+                <View style={{ height: 2, backgroundColor: COLORS.accentCoral, marginBottom: 24 }} />
 
-            <View style={{ flex: 1 }} />
-          </ScrollView>
-        </View>
+                {p.lines.map((line, j) => (
+                  <Text
+                    key={j}
+                    style={{
+                      fontSize: line.pig ? 17 : 16,
+                      fontFamily: line.pig ? 'Fredoka_700Bold' : 'PlusJakartaSans_400Regular',
+                      color: line.pig ? COLORS.accentCoral : COLORS.keylinePurple,
+                      lineHeight: 28,
+                      marginTop: line.pig ? 6 : 0,
+                      marginBottom: line.pig ? 6 : 0,
+                    }}>
+                    {line.text}
+                  </Text>
+                ))}
+
+                {art && (
+                  <View style={{ flex: 1, alignItems: 'flex-start', justifyContent: 'center', minHeight: 200, marginTop: 16 }}>
+                    <Image
+                      source={art.source}
+                      style={{ width: pigWidth, height: pigWidth * art.aspect }}
+                      resizeMode="contain"
+                    />
+                  </View>
+                )}
+
+                <View style={{ flex: 1 }} />
+              </ScrollView>
+            </View>
+          );
+        })}
       </ScrollView>
 
       <View
@@ -152,7 +162,9 @@ export default function AboutScreen({ navigation }: any) {
           paddingBottom: insets.bottom + 8, backgroundColor: COLORS.cream,
         }}>
         <TouchableOpacity
-          onPress={() => (page === 0 ? goToPage(1) : navigation.navigate('Registration1', { mode: 'register' }))}
+          onPress={() =>
+            page < lastPage ? goToPage(page + 1) : navigation.navigate('Registration1', { mode: 'register' })
+          }
           activeOpacity={0.85}
           style={{
             height: 56, borderRadius: 28, backgroundColor: COLORS.accentCoral,
@@ -160,7 +172,7 @@ export default function AboutScreen({ navigation }: any) {
             boxShadow: '3px 3px 0px rgba(32,22,66,0.18)',
           } as any}>
           <Text style={{ color: '#FFFFFF', fontSize: 15, fontFamily: 'Fredoka_700Bold' }}>
-            {page === 0 ? 'Next →' : 'Start →'}
+            {PAGES[page].cta}
           </Text>
         </TouchableOpacity>
       </View>
