@@ -4,7 +4,10 @@ module.exports = {
     slug: "meex",
     version: "1.0.0",
     orientation: "portrait",
-    icon: "./assets/icon.png",
+    // Derived from src/assets/launcher-icon-bold/launcher-icon-bold.png:
+    // 1024×1024 and flattened onto cream, because iOS app icons may not carry
+    // an alpha channel — transparent corners render black on device.
+    icon: "./assets/launcher-icon.png",
     userInterfaceStyle: "light",
     newArchEnabled: true,
     splash: {
@@ -17,8 +20,11 @@ module.exports = {
     },
     android: {
       adaptiveIcon: {
-        foregroundImage: "./assets/adaptive-icon.png",
-        backgroundColor: "#ffffff"
+        // Same mark, kept transparent and inset to the 66% safe zone so the
+        // launcher's mask (circle / squircle / rounded square) can't clip the
+        // keyline ring. The cream field comes from backgroundColor.
+        foregroundImage: "./assets/launcher-adaptive-foreground.png",
+        backgroundColor: "#FAF9F6"
       },
       edgeToEdgeEnabled: true,
       predictiveBackGestureEnabled: false,

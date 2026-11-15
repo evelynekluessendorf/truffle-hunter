@@ -17,35 +17,44 @@ const COLORS = {
   sunnyYellowBright: '#E8A33D',
 };
 
-const progressTrack = 'rgba(255,107,53,0.25)';
+const progressTrack = '#FBD8CA';   // measured from the About1 comp
+const titleRule = '#CF393F';        // the rule under the title is red, not coral
+const bodyText = '#000000';         // comp uses black body copy against the purple title
 
 const { width: screenWidth } = Dimensions.get('window');
 
 /** Illustration sizing, per asset aspect. */
 const pigWidth = screenWidth * 0.6;
 
-type Line = { text: string; pig?: boolean };
+type Line = {
+  text: string;
+  /** The pig's asides are set in italic in the comps. */
+  italic?: boolean;
+  /** Extra space below, for the comps' paragraph breaks. */
+  gapAfter?: number;
+};
 
-/** The three onboarding beats. `pig` lines are the truffle pig's asides. */
+/** The three onboarding beats. */
 const PAGES: { title: string; lines: Line[]; cta: string }[] = [
   {
-    title: 'Welcome to Truffle Hunter',
+    title: 'Welcome to Truffle Hunter?',
     lines: [
       { text: 'Some things are worth looking for.' },
       { text: 'A great coffee.' },
       { text: 'A four-leaf clover.' },
-      { text: '“A truffle!” 🐽.', pig: true },
+      { text: '“A truffle!” 🐽.' },
       { text: 'A conversation that makes your day.' },
       { text: "Let's go find one." },
     ],
     cta: 'Next →',
   },
   {
-    title: "Here's the deal.",
+    title: "Here's the deal",
     lines: [
       { text: "I'll help you find interesting people." },
       { text: 'You do the saying hello.' },
-      { text: '🐽 "Fair trade, right?"', pig: true },
+      // comp sets this italic, then breaks the paragraph before "Turn yourself visible"
+      { text: '🐽 "Fair trade, right?"', italic: true, gapAfter: 36 },
       { text: 'Turn yourself visible.' },
       { text: "See who's around." },
       { text: 'Walk over.' },
@@ -54,14 +63,15 @@ const PAGES: { title: string; lines: Line[]; cta: string }[] = [
     cta: 'Next →',
   },
   {
-    title: 'Listen for the oink.',
+    title: 'How it works',
     lines: [
       { text: 'When you get close… oink! You’ll both hear it.' },
-      { text: '🐽 "That\'s my cue to leave."', pig: true },
+      // italic, with a wide break before the closing two lines
+      { text: '🐽 "That\'s my cue to leave."', italic: true, gapAfter: 80 },
       { text: 'Now put the phone away.' },
       { text: 'Bye' },
     ],
-    cta: 'Start Hunting →',
+    cta: 'Start hunting →',
   },
 ];
 
@@ -69,7 +79,7 @@ const PAGES: { title: string; lines: Line[]; cta: string }[] = [
 const ART = [
   { source: require('../assets/illustrations/About 1.png'), aspect: 701 / 830 },
   null, // page 2 is copy-only, as before
-  { source: require('../assets/illustrations/sleeping-pig.png'), aspect: 1026 / 968 },
+  null, // About3 is copy-only in the comp
 ];
 
 export default function AboutScreen({ navigation }: any) {
@@ -90,12 +100,12 @@ export default function AboutScreen({ navigation }: any) {
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.cream }}>
       {/* Progress — fills a third at a time across the three pages */}
-      <View style={{ paddingTop: insets.top + 8, paddingHorizontal: 24, alignItems: 'center' }}>
-        <View style={{ width: '55%', height: 3, backgroundColor: progressTrack, borderRadius: 2 }}>
+      <View style={{ paddingTop: insets.top + 8, paddingHorizontal: 24 }}>
+        <View style={{ width: '100%', height: 4, backgroundColor: progressTrack, borderRadius: 2 }}>
           <View
             style={{
               width: `${((page + 1) / PAGES.length) * 100}%`,
-              height: 3,
+              height: 4,
               backgroundColor: COLORS.accentCoral,
               borderRadius: 2,
             }}
@@ -122,18 +132,18 @@ export default function AboutScreen({ navigation }: any) {
                 <Text style={{ fontSize: 44, fontFamily: 'Fredoka_700Bold', color: COLORS.keylinePurple, marginBottom: 8 }}>
                   {p.title}
                 </Text>
-                <View style={{ height: 2, backgroundColor: COLORS.accentCoral, marginBottom: 24 }} />
+                <View style={{ height: 2, backgroundColor: titleRule, marginBottom: 24 }} />
 
                 {p.lines.map((line, j) => (
                   <Text
                     key={j}
                     style={{
-                      fontSize: line.pig ? 17 : 16,
-                      fontFamily: line.pig ? 'Fredoka_700Bold' : 'PlusJakartaSans_400Regular',
-                      color: line.pig ? COLORS.accentCoral : COLORS.keylinePurple,
-                      lineHeight: 28,
-                      marginTop: line.pig ? 6 : 0,
-                      marginBottom: line.pig ? 6 : 0,
+                      fontSize: 16,
+                      fontFamily: 'PlusJakartaSans_500Medium',
+                      fontStyle: line.italic ? 'italic' : 'normal',
+                      color: bodyText,
+                      lineHeight: 26,
+                      marginBottom: 16 + (line.gapAfter ?? 0),
                     }}>
                     {line.text}
                   </Text>

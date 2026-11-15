@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Image, Modal } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Image, Modal, PanResponder } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import MapView, { Marker, Overlay, PROVIDER_GOOGLE } from 'react-native-maps';
+import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import MapViewDirections from 'react-native-maps-directions';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { FOREST_MAP_STYLE, STANDARD_MAP_STYLE } from '../theme/forestMapStyle';
+import { STANDARD_MAP_STYLE } from '../theme/forestMapStyle';
 import { useTabBarStyle } from '../navigation/TabNavigator';
 import { useUser } from '../context/UserContext';
 import { DEFAULT_PROFILE } from '../data/mockProfiles';
@@ -42,12 +42,23 @@ const TOGGLE_W = 44;
 const TOGGLE_H = Math.round(TOGGLE_W * (280 / 124)); // 99
 const TOGGLE_SPLIT = Math.round(TOGGLE_H * 0.46);    // 46
 
+/** The illustrated map used as Forest View's background. */
+const FOREST_BACKGROUND = require('../assets/Screens/Map/Map Viewport.png');
+const FOREST_IMAGE_ASPECT = 2496 / 1548;
+
 /**
- * Foliage-only cut of the illustration — its flat land, road bands and street
- * labels are transparent, so the styled map reads through and nothing repeats
- * that would give the tiling away (repeated "Pine St" would).
+ * Geographic box the illustration stands for. Everything in Forest View —
+ * avatars, the popup, the walking path — is projected through this, so the
+ * artwork and the pins stay locked together at any zoom.
  */
-const FOREST_FOLIAGE = require('../assets/Screens/Map/forest-overlay.png');
+const FOREST_REGION = {
+  west: -122.4260,
+  east: -122.4120,
+  south: 37.76705,
+  north: 37.78495,
+};
+
+const FOREST_MAX_ZOOM = 4;
 
 const MAJORS = [
   'Biology',
@@ -67,37 +78,6 @@ const CONVO_COUNTS: Record<string, number> = {
 };
 
 const YOU_COORD = { latitude: 37.7760, longitude: -122.4190 };
-
-/**
- * One tile of foliage, sized so the artwork's 1548×2496 aspect holds on the
- * ground (1° lng ≈ 88 km at this latitude vs 1° lat ≈ 111 km).
- */
-const FOREST_TILE_LAT = 0.0179;
-const FOREST_TILE_LNG = 0.0140;
-
-/**
- * A 5×5 grid of those tiles around YOU_COORD — roughly 10 km × 6 km — so the
- * forest keeps going as you zoom out instead of stopping at a visible edge.
- * Built once at module load; the map culls whatever is off-screen.
- */
-const FOREST_TILES: { key: string; bounds: [[number, number], [number, number]] }[] = (() => {
-  const tiles: { key: string; bounds: [[number, number], [number, number]] }[] = [];
-  const RING = 2;
-  for (let i = -RING; i <= RING; i++) {
-    for (let j = -RING; j <= RING; j++) {
-      const cLat = 37.7760 + i * FOREST_TILE_LAT;
-      const cLng = -122.4190 + j * FOREST_TILE_LNG;
-      tiles.push({
-        key: `${i}:${j}`,
-        bounds: [
-          [cLat - FOREST_TILE_LAT / 2, cLng - FOREST_TILE_LNG / 2],
-          [cLat + FOREST_TILE_LAT / 2, cLng + FOREST_TILE_LNG / 2],
-        ],
-      });
-    }
-  }
-  return tiles;
-})();
 
 /**
  * Normalises the stored distance to the drawer's phrasing. The value arrives in
@@ -416,6 +396,17 @@ export default function DiscoverScreen({ navigation, route }: any) {
   };
 
   /**
+   * Close whatever drawer is open without touching the map camera — used when
+   * tapping straight from one peer's drawer onto another peer's pin, where
+   * recentring would pull the map away from the pin you just tapped.
+   */
+  const dismissDrawers = () => {
+    setMode('default');
+    setOpenerUser(null);
+    setRouteInfo(null);
+  };
+
+  /**
    * Filters take over the screen, so any open drawer is dismissed first —
    * one panel at a time. Only the map-route modes need their state torn down;
    * shout-outs just close, with no map animation.
@@ -470,11 +461,104 @@ export default function DiscoverScreen({ navigation, route }: any) {
   // renders glued to the pin on the very same frame as the tap (no native round-trip).
   // Linear projection is exact enough at these zoom deltas (<1km span).
   /**
-   * lat/lng → screen point inside the map container. Used for the pin popup in
-   * both modes, and in Forest View for the pins and route themselves, since
-   * there's no MapView to place native markers.
+   * Forest View transform.
+   *
+   * There is no pan state at all — the illustration is locked to the framing
+   * that shows every peer, and zoom only ever grows from there. That framing is
+   * both the starting point and the floor: pinch in to get closer, pinch back
+   * out and you stop exactly where you began.
+   */
+  const forestFit = useMemo(() => {
+    if (mapSize.width === 0 || mapSize.height === 0) return null;
+    const pts = [YOU_COORD, ...USERS.map(u => ({ latitude: u.lat, longitude: u.lng }))].map(pt => ({
+      u: (pt.longitude - FOREST_REGION.west) / (FOREST_REGION.east - FOREST_REGION.west),
+      v: (FOREST_REGION.north - pt.latitude) / (FOREST_REGION.north - FOREST_REGION.south),
+    }));
+    const uMin = Math.min(...pts.map(p => p.u)), uMax = Math.max(...pts.map(p => p.u));
+    const vMin = Math.min(...pts.map(p => p.v)), vMax = Math.max(...pts.map(p => p.v));
+
+    // widest image that still leaves the map's usual 80/50 padding on each axis
+    const byW = Math.max(1, mapSize.width - 50 * 2) / Math.max(uMax - uMin, 1e-6);
+    const byH =
+      Math.max(1, mapSize.height - 80 * 2) / (Math.max(vMax - vMin, 1e-6) * FOREST_IMAGE_ASPECT);
+
+    return {
+      zoom: Math.min(byW, byH) / mapSize.width,
+      cu: (uMin + uMax) / 2,
+      cv: (vMin + vMax) / 2,
+    };
+  }, [mapSize.width, mapSize.height]);
+
+  /** Extra zoom past the fit, 1 = fully zoomed out. Never goes below 1. */
+  const [forestZoomFactor, setForestZoomFactor] = useState(1);
+  const forestZoom = (forestFit?.zoom ?? 1) * forestZoomFactor;
+
+  const forestImage = useMemo(() => {
+    const width = mapSize.width * forestZoom;
+    return { width, height: width * FOREST_IMAGE_ASPECT };
+  }, [mapSize.width, forestZoom]);
+
+  /**
+   * Pan is derived, not stored: the peer group's centre stays pinned to the
+   * middle of the container at every zoom, so nothing can drift off-frame.
+   */
+  const forestPan = useMemo(() => {
+    if (!forestFit) return { x: 0, y: 0 };
+    return {
+      x: mapSize.width / 2 - forestFit.cu * forestImage.width,
+      y: mapSize.height / 2 - forestFit.cv * forestImage.height,
+    };
+  }, [forestFit, forestImage, mapSize.width, mapSize.height]);
+
+  /**
+   * Pinch only. The responder refuses single-touch moves, so dragging the map
+   * does nothing — and the zoom factor is clamped at 1, so pinching out can
+   * never go wider than the starting frame.
+   */
+  const pinch = useRef({ dist: 0, factor: 1 });
+  const forestPanResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => false,
+        onMoveShouldSetPanResponder: e => e.nativeEvent.touches.length >= 2,
+        onPanResponderGrant: () => {
+          pinch.current.dist = 0;
+          pinch.current.factor = forestZoomFactor;
+        },
+        onPanResponderMove: e => {
+          const touches = e.nativeEvent.touches;
+          if (touches.length < 2) return;
+          const [a, b] = touches;
+          const dist = Math.hypot(a.pageX - b.pageX, a.pageY - b.pageY);
+          if (pinch.current.dist === 0) {
+            pinch.current.dist = dist;
+            pinch.current.factor = forestZoomFactor;
+            return;
+          }
+          const next = pinch.current.factor * (dist / pinch.current.dist);
+          setForestZoomFactor(Math.min(FOREST_MAX_ZOOM, Math.max(1, next)));
+        },
+        onPanResponderRelease: () => {
+          pinch.current.dist = 0;
+        },
+      }),
+    [forestZoomFactor]
+  );
+
+  /**
+   * lat/lng → screen point inside the map container.
+   *
+   * Standard View projects through the live map region; Forest View projects
+   * through the illustration's own box and transform. Everything downstream —
+   * avatars, the pin popup, the walking path — goes through this one function,
+   * so both modes stay consistent without duplicated positioning code.
    */
   const project = (lat: number, lng: number) => {
+    if (isForest) {
+      const u = (lng - FOREST_REGION.west) / (FOREST_REGION.east - FOREST_REGION.west);
+      const v = (FOREST_REGION.north - lat) / (FOREST_REGION.north - FOREST_REGION.south);
+      return { x: forestPan.x + u * forestImage.width, y: forestPan.y + v * forestImage.height };
+    }
     const west = region.longitude - region.longitudeDelta / 2;
     const north = region.latitude + region.latitudeDelta / 2;
     return {
@@ -482,6 +566,7 @@ export default function DiscoverScreen({ navigation, route }: any) {
       y: ((north - lat) / region.latitudeDelta) * mapSize.height,
     };
   };
+
 
   const popupPosition = useMemo(() => {
     if (!popupUser || mode !== 'default' || mapSize.width === 0) return null;
@@ -607,10 +692,146 @@ export default function DiscoverScreen({ navigation, route }: any) {
 
         {/* ── MAP AREA — flex:1 container below the header ── */}
         <View style={{ flex: 1 }} onLayout={e => setMapSize({ width: e.nativeEvent.layout.width, height: e.nativeEvent.layout.height })}>
+          {/* ══ FOREST VIEW — the illustration is the map. Pinch to zoom, drag
+               to pan; avatars, popup and path all project through the same
+               transform so they stay locked to the artwork. ══ */}
+          {isForest && (
+            <View
+              // The illustration is taller than the map area and its offset is
+              // negative, so without clipping it spills up over the Discover
+              // title, the Map/List toggle and the filter icon. RN defaults
+              // overflow to visible on iOS, hence this.
+              style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, overflow: 'hidden' }}
+              {...forestPanResponder.panHandlers}>
+              <Image
+                source={FOREST_BACKGROUND}
+                style={{
+                  position: 'absolute',
+                  left: forestPan.x, top: forestPan.y,
+                  width: forestImage.width, height: forestImage.height,
+                }}
+                resizeMode="stretch"
+              />
+
+              {/* Walking path — a routed line rather than a straight one, so it
+                  reads like the map view's directions. Two turns, staircase
+                  style, seeded per peer so the same person always gets the
+                  same route. Drawn as dots, matching the design. */}
+              {(mode === 'directions' || mode === 'navigating') && openerUser && (openerUser as any).lat && (() => {
+                const a = project(YOU_COORD.latitude, YOU_COORD.longitude);
+                const b = project((openerUser as any).lat, (openerUser as any).lng);
+                if (!Math.hypot(b.x - a.x, b.y - a.y)) return null;
+
+                // deterministic per peer — no reshuffling between renders
+                const seed = [...String((openerUser as any).id ?? '')].reduce(
+                  (h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7
+                );
+                const r1 = ((seed % 1000) / 1000) * 0.3 + 0.35; // 0.35–0.65
+                const r2 = (((seed >> 8) % 1000) / 1000) * 0.3 + 0.35;
+                const verticalFirst = ((seed >> 4) & 1) === 1;
+
+                const midX = a.x + (b.x - a.x) * r1;
+                const midY = a.y + (b.y - a.y) * r2;
+                const pts = verticalFirst
+                  ? [a, { x: a.x, y: midY }, { x: midX, y: midY }, { x: midX, y: b.y }, b]
+                  : [a, { x: midX, y: a.y }, { x: midX, y: midY }, { x: b.x, y: midY }, b];
+
+                // walk the polyline, dropping a dot every SPACING px
+                const SPACING = 13;
+                const dots: { x: number; y: number }[] = [];
+                for (let i = 0; i < pts.length - 1; i++) {
+                  const p0 = pts[i], p1 = pts[i + 1];
+                  const segLen = Math.hypot(p1.x - p0.x, p1.y - p0.y);
+                  const n = Math.floor(segLen / SPACING);
+                  for (let k = 0; k < n; k++) {
+                    const t = k / Math.max(n, 1);
+                    dots.push({ x: p0.x + (p1.x - p0.x) * t, y: p0.y + (p1.y - p0.y) * t });
+                  }
+                }
+                dots.push(b);
+
+                return dots.map((d, i) => (
+                  <View
+                    key={i}
+                    pointerEvents="none"
+                    style={{
+                      position: 'absolute',
+                      left: d.x - 4, top: d.y - 4,
+                      width: 8, height: 8, borderRadius: 4,
+                      backgroundColor: COLORS.accentCoral,
+                    }}
+                  />
+                ));
+              })()}
+
+              {/* peers */}
+              {filteredUsers.map(user => {
+                const isSelected = openerUser?.id === user.id || popupUser?.id === user.id;
+                const size = isSelected ? 52 : 44;
+                const pt = project(user.lat, user.lng);
+                return (
+                  <TouchableOpacity
+                    key={user.id}
+                    activeOpacity={0.9}
+                    onPress={() => {
+                      // tapping a pin while a drawer is open swaps straight to
+                      // that peer's chipbox
+                      if (mode !== 'default') {
+                        dismissDrawers();
+                        setPopupUser(user);
+                        return;
+                      }
+                      setPopupUser(popupUser?.id === user.id ? null : user);
+                    }}
+                    style={{
+                      position: 'absolute',
+                      left: pt.x - size / 2, top: pt.y - size / 2,
+                      width: size, height: size, borderRadius: size / 2,
+                      boxShadow: AVATAR_SHADOW,
+                    } as any}>
+                    <View style={{
+                      width: '100%', height: '100%', borderRadius: size / 2,
+                      backgroundColor: '#FFFFFF', overflow: 'hidden',
+                      borderWidth: isSelected ? 4 : 2, borderColor: '#FFFFFF',
+                    }}>
+                      <Image source={{ uri: user.photo }} style={{ width: '100%', height: '100%' }} />
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+
+              {/* you */}
+              {(() => {
+                const size = mode === 'default' ? 48 : 54;
+                const pt = project(YOU_COORD.latitude, YOU_COORD.longitude);
+                return (
+                  <View
+                    pointerEvents="none"
+                    style={{
+                      position: 'absolute',
+                      left: pt.x - size / 2, top: pt.y - size / 2,
+                      width: size, height: size, borderRadius: size / 2,
+                      boxShadow: AVATAR_SHADOW,
+                    } as any}>
+                    <View style={{
+                      width: '100%', height: '100%', borderRadius: size / 2,
+                      backgroundColor: '#FFFFFF', overflow: 'hidden',
+                      borderWidth: mode === 'default' ? 3 : 4, borderColor: COLORS.accentCoral,
+                    }}>
+                      <Image source={myAvatar} style={{ width: '100%', height: '100%' }} />
+                    </View>
+                  </View>
+                );
+              })()}
+            </View>
+          )}
+
+          {/* ══ STANDARD MAP — live Google Maps, unchanged ══ */}
+          {!isForest && (
           <MapView
             ref={mapRef}
             provider={PROVIDER_GOOGLE}
-            customMapStyle={isForest ? FOREST_MAP_STYLE : STANDARD_MAP_STYLE}
+            customMapStyle={STANDARD_MAP_STYLE}
             style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
             initialRegion={INITIAL_REGION}
             onMapReady={() => setMapReady(true)}
@@ -618,14 +839,6 @@ export default function DiscoverScreen({ navigation, route }: any) {
             onRegionChangeComplete={setRegion}
             showsUserLocation={false}
             showsMyLocationButton={false}>
-
-            {/* Forest foliage, tiled across the whole area so the look holds at
-                any zoom. Declared before the markers so avatars, the route and
-                every control draw on top. The styled map underneath supplies the
-                cream land, beige roads and purple labels at every zoom level. */}
-            {isForest && FOREST_TILES.map(t => (
-              <Overlay key={t.key} image={FOREST_FOLIAGE} bounds={t.bounds} />
-            ))}
 
             {/* User markers */}
             {(mode === 'default' || mode === 'openers' || mode === 'directions' || mode === 'navigating') && filteredUsers.map((user) => {
@@ -638,7 +851,13 @@ export default function DiscoverScreen({ navigation, route }: any) {
                   coordinate={{ latitude: user.lat + driftLat, longitude: user.lng + driftLng }}
                   anchor={{ x: 0.5, y: 0.5 }}
                   onPress={() => {
-                    if (mode !== 'default') return;
+                    // tapping a pin while a drawer is open swaps straight to
+                    // that peer's chipbox
+                    if (mode !== 'default') {
+                      dismissDrawers();
+                      setPopupUser(user);
+                      return;
+                    }
                     setPopupUser(popupUser?.id === user.id ? null : user);
                   }}>
                   {/* shadow sits on the outer view — the inner one clips the photo
@@ -696,6 +915,7 @@ export default function DiscoverScreen({ navigation, route }: any) {
               />
             )}
           </MapView>
+          )}
 
           {/* ── SHOUTOUT BELL — floating over the map, top right.
               right:24 + 44px width keeps it on the same vertical axis as the header filter icon ── */}
